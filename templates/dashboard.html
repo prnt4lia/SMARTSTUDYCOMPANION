@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Smart Study Companion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<body>
+
+<div class="container">
+    <h1>📚 Smart Study Companion</h1>
+        <div class="main-layout">
+    <!-----------LEFT PANEL --VIDEO FEED_------->
+    <div class="card video">
+        <h2>Live Camera</h2>
+        <img src="{{ url_for('video_feed') }}" alt="Live camera feed"  title="Real-time fatigue monitoring camera">
+    </div>
+
+    <!--------RIGHT PANEL --FATIGUE STATUS & RECOMMENDATIONS-------->
+    <div class="right-panel">
+        <div class="card status">
+            <h2>Fatigue Status</h2>
+            <p id="fatigue">Loading...</p>
+            <p id="severity"></p>
+        </div>
+
+    <div class="card">
+        <h2>Recommendation</h2>
+        <p id="activity"></p>
+        <p id="duration"></p>
+    </div>
+
+    <div id="alertBox" class="alert hidden">
+    <p id="alertText"></p>
+    </div>
+    
+</div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

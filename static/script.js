@@ -40,7 +40,61 @@ async function fetchFatigue() {
             showAlert(`${fatigue.replace("_", " ")} (${severity}) detected!`);
             lastAlert = currentAlert;
         }
+
+        if (data.severity === "high") {
+        pauseTimer();
+        alert("Fatigue detected! Timer paused.");
+        }
     }
 }
 
 setInterval(fetchFatigue, 1000);
+
+// ⏱ TIMER VARIABLES
+let time = 25 * 60; // 25 minutes
+let timer = null;
+let running = false;
+
+// 🔄 Update display
+function updateDisplay() {
+    let minutes = Math.floor(time / 60);
+    let seconds = time % 60;
+
+    document.getElementById("timeDisplay").innerText =
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// ▶ START
+function startTimer() {
+    if (running) return;
+
+    running = true;
+
+    timer = setInterval(() => {
+        if (time > 0) {
+            time--;
+            updateDisplay();
+        } else {
+            clearInterval(timer);
+            running = false;
+            alert("Time's up! Take a break.");
+        }
+    }, 1000);
+}
+
+// ⏸ PAUSE
+function pauseTimer() {
+    clearInterval(timer);
+    running = false;
+}
+
+// 🔁 RESET
+function resetTimer() {
+    clearInterval(timer);
+    running = false;
+    time = 25 * 60;
+    updateDisplay();
+}
+
+// Initialize
+updateDisplay();

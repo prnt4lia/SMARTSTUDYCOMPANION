@@ -6,6 +6,19 @@ import numpy as np
 from imutils import face_utils
 from scipy.spatial import distance
 
+def save_calibration(ear_mean, ear_std, mar_mean, mar_std):
+    import sqlite3
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    INSERT INTO calibration_data (ear_mean, ear_std, mar_mean, mar_std)
+    VALUES (?, ?, ?, ?)
+    """, (ear_mean, ear_std, mar_mean, mar_std))
+
+    conn.commit()
+    conn.close()
 
 class Calibrator:
     def __init__(self, output_file="data/calibration_data.json"):
@@ -105,6 +118,9 @@ class Calibrator:
 
         with open(self.output_file, "w") as f:
             json.dump(data, f)
+
+        # Also save to database
+        save_calibration(ear_mean, ear_std, mar_mean, mar_std)
 
         print("Calibration complete.")
         print(data)

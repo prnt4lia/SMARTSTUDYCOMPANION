@@ -68,3 +68,27 @@ body {
 h1 {
     color: #38bdf8;
 }
+
+.timer {
+    text-align: center;
+}
+
+#timeDisplay {
+    font-size: 48px;
+    color: #38bdf8;
+    margin: 10px 0;
+}
+
+.timer-buttons button {
+    margin: 5px;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 8px;
+    background: #38bdf8;
+    color: white;
+    cursor: pointer;
+}
+
+.timer-buttons button:hover {
+    background: #0ea5e9;
+}

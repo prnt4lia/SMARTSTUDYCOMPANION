@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>📊 Study Statistics</h1>
+
+    <a href="/" class="btn">⬅ Back to Dashboard</a>
+
+    <div class="card">
+        <h2>Study Duration</h2>
+        <p id="duration">Loading...</p>
+    </div>
+
+    <div class="card">
+        <h2>Total Fatigue Events</h2>
+        <p id="fatigueCount">Loading...</p>
+    </div>
+
+    <div class="card">
+        <h2>Fatigue Distribution</h2>
+        <canvas id="fatigueChart"></canvas>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='stats.js') }}"></script>
+
+</body>
+</html>

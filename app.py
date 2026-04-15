@@ -173,6 +173,53 @@ def feedback():
 
     return {"status": "success"}
 
+@app.route('/stats')
+def stats():
+    import sqlite3
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    # 🕒 Study duration (latest session)
+    cursor.execute("""
+    SELECT duration FROM study_sessions
+    ORDER BY id DESC LIMIT 1
+    """)
+    result = cursor.fetchone()
+    duration = result[0] if result and result[0] else 0
+
+    # 🔢 Fatigue count
+    cursor.execute("SELECT COUNT(*) FROM fatigue_events")
+    fatigue_count = cursor.fetchone()[0]
+
+    # 📊 Fatigue type distribution
+    cursor.execute("""
+    SELECT fatigue, COUNT(*) FROM fatigue_events
+    GROUP BY fatigue
+    """)
+    data = cursor.fetchall()
+
+    eye = 0
+    mental = 0
+
+    for row in data:
+        if row[0] == "eye_fatigue":
+            eye = row[1]
+        elif row[0] == "mental_fatigue":
+            mental = row[1]
+
+    conn.close()
+
+    return {
+        "duration": duration,
+        "fatigue_count": fatigue_count,
+        "eye": eye,
+        "mental": mental
+    }
+
+@app.route('/stats_page')
+def stats_page():
+    return render_template('stats.html')
 
 if __name__ == "__main__":
     try:

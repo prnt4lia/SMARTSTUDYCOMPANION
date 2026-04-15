@@ -92,3 +92,17 @@ h1 {
 .timer-buttons button:hover {
     background: #0ea5e9;
 }
+
+.btn {
+    display: inline-block;
+    margin: 10px;
+    padding: 10px 20px;
+    background: #38bdf8;
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background: #0ea5e9;
+}

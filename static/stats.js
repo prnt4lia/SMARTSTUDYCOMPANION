@@ -4,18 +4,18 @@ async function fetchStats() {
     const response = await fetch('/stats');
     const data = await response.json();
 
-    // ⏱ Duration
+    // Duration
     let minutes = Math.floor(data.duration / 60);
     let seconds = data.duration % 60;
 
     document.getElementById("duration").innerText =
         `${minutes}m ${seconds}s`;
 
-    // 😴 Fatigue count
+    //  Fatigue count
     document.getElementById("fatigueCount").innerText =
         data.fatigue_count;
 
-    // 📊 Chart
+    // Chart
     updateChart(data.eye, data.mental);
 }
 

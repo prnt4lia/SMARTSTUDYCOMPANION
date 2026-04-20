@@ -32,7 +32,7 @@ async function fetchFatigue() {
     document.getElementById("duration").innerText =
         data.recommendation.duration;
 
-    // 🚨 POPUP LOGIC
+    // POPUP LOGIC
     if (fatigue && severity) {
         const currentAlert = fatigue + "-" + severity;
 
@@ -50,12 +50,12 @@ async function fetchFatigue() {
 
 setInterval(fetchFatigue, 1000);
 
-// ⏱ TIMER VARIABLES
+// TIMER VARIABLES
 let time = 25 * 60; // 25 minutes
 let timer = null;
 let running = false;
 
-// 🔄 Update display
+// Update display
 function updateDisplay() {
     let minutes = Math.floor(time / 60);
     let seconds = time % 60;
@@ -64,7 +64,7 @@ function updateDisplay() {
         `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-// ▶ START
+//  START
 function startTimer() {
     if (running) return;
 
@@ -82,13 +82,13 @@ function startTimer() {
     }, 1000);
 }
 
-// ⏸ PAUSE
+// PAUSE
 function pauseTimer() {
     clearInterval(timer);
     running = false;
 }
 
-// 🔁 RESET
+// RESET
 function resetTimer() {
     clearInterval(timer);
     running = false;

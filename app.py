@@ -1,17 +1,19 @@
 from datetime import datetime
 
 import cv2
-from flask import Flask, Response, jsonify, render_template
+from flask import Flask, Response, jsonify, render_template, redirect
 
 from adaptive_recommender import AdaptiveRecommender
 from database import init_db
 from fatigue_detection import FatigueDetector
 from recommendation_engine import RecommendationEngine
+from collections import deque
+import time
 
-
-session_started_at = datetime.now()
-current_session_id = None
+fatigue_buffer = deque(maxlen=10)
 last_saved = None
+last_trigger_time = 0
+cooldown = 5  # seconds
 
 app = Flask(__name__)
 init_db()
@@ -98,10 +100,12 @@ fatigue_data = {
 }
 
 
+
+
 def generate_frames():
     local_cap = cv2.VideoCapture(0)
 
-    global fatigue_data, last_saved, current_session_id
+    global fatigue_data, last_saved, current_session_id, last_trigger_time
 
     while True:
         success, frame = local_cap.read()
@@ -110,16 +114,45 @@ def generate_frames():
 
         frame, fatigue, severity = detector.process_frame(frame)
 
-        fatigue_data["fatigue"] = fatigue
-        fatigue_data["severity"] = severity
+        # Add to buffer
+        fatigue_buffer.append((fatigue, severity))
 
-        if fatigue is not None:
-            current = fatigue + str(severity)
+        # Count occurrences
+        counts = {}
+        for f, s in fatigue_buffer:
+            key = (f, s)
+            counts[key] = counts.get(key, 0) + 1
 
-            if current != last_saved:
-                save_fatigue_event(current_session_id, fatigue, severity)
+        # Get most frequent
+        stable = max(counts, key=counts.get)
+
+        # Apply threshold
+        if counts[stable] >= 6:
+            stable_fatigue, stable_severity = stable
+        else:
+            stable_fatigue, stable_severity = None, None
+
+        #  Use STABLE values
+        fatigue_data["fatigue"] = stable_fatigue
+        fatigue_data["severity"] = stable_severity
+
+        # SAVE
+        current_time = time.time()
+
+        if stable_fatigue is not None:
+            current = stable_fatigue + str(stable_severity)
+
+            if (current != last_saved and 
+                current_time - last_trigger_time > cooldown):
+
+                save_fatigue_event(current_session_id,
+                                   stable_fatigue,
+                                   stable_severity)
+
                 last_saved = current
+                last_trigger_time = current_time
 
+        # Encode frame
         _, buffer = cv2.imencode(".jpg", frame)
         frame_bytes = buffer.tobytes()
 
@@ -128,10 +161,39 @@ def generate_frames():
             b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
         )
 
+@app.route('/calibration')
+def calibration_page():
+    return render_template('calibration.html')
 
-@app.route("/")
+@app.route('/start_calibration')
+def start_calibration():
+    from calibration import Calibrator
+
+    calibrator = Calibrator()
+    data = calibrator.run()   # runs camera
+
+    return {
+        "status": "done",
+        "data": data
+    }
+
+@app.route('/')
 def index():
-    return render_template("dashboard.html")
+    import sqlite3
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM calibration_data")
+    count = cursor.fetchone()[0]
+
+    conn.close()
+
+    # If no calibration → go to calibration page
+    if count == 0:
+        return redirect('/calibration')
+
+    return render_template('dashboard.html')
 
 
 @app.route("/video_feed")
@@ -180,7 +242,7 @@ def stats():
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
-    # 🕒 Study duration (latest session)
+    # Study duration (latest session)
     cursor.execute("""
     SELECT duration FROM study_sessions
     ORDER BY id DESC LIMIT 1
@@ -188,11 +250,11 @@ def stats():
     result = cursor.fetchone()
     duration = result[0] if result and result[0] else 0
 
-    # 🔢 Fatigue count
+    # Fatigue count
     cursor.execute("SELECT COUNT(*) FROM fatigue_events")
     fatigue_count = cursor.fetchone()[0]
 
-    # 📊 Fatigue type distribution
+    # Fatigue type distribution
     cursor.execute("""
     SELECT fatigue, COUNT(*) FROM fatigue_events
     GROUP BY fatigue

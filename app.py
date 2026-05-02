@@ -2,7 +2,7 @@ from datetime import datetime
 
 import cv2
 from flask import Flask, Response, jsonify, render_template, redirect
-
+from flask_cors import CORS
 from adaptive_recommender import AdaptiveRecommender
 from database import init_db
 from fatigue_detection import FatigueDetector
@@ -16,6 +16,7 @@ last_trigger_time = 0
 cooldown = 5  # seconds
 
 app = Flask(__name__)
+CORS(app)
 init_db()
 
 
@@ -161,40 +162,23 @@ def generate_frames():
             b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
         )
 
-@app.route('/calibration')
-def calibration_page():
-    return render_template('calibration.html')
-
-@app.route('/start_calibration')
+@app.route('/api/calibrate', methods=['GET'])
 def start_calibration():
     from calibration import Calibrator
 
     calibrator = Calibrator()
-    data = calibrator.run()   # runs camera
+    data = calibrator.run()
 
-    return {
-        "status": "done",
+    return jsonify({
+        "status": "completed",
         "data": data
-    }
+    })
 
 @app.route('/')
-def index():
-    import sqlite3
-
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM calibration_data")
-    count = cursor.fetchone()[0]
-
-    conn.close()
-
-    # If no calibration → go to calibration page
-    if count == 0:
-        return redirect('/calibration')
-
-    return render_template('dashboard.html')
-
+def api_root():
+    return jsonify({
+        "message": "Smart Study Companion API running"
+    })
 
 @app.route("/video_feed")
 def video_feed():
@@ -204,7 +188,7 @@ def video_feed():
     )
 
 
-@app.route("/fatigue_status")
+@app.route("/api/fatigue")
 def fatigue_status():
     fatigue = fatigue_data["fatigue"]
     severity = fatigue_data["severity"]
@@ -220,7 +204,7 @@ def fatigue_status():
     )
 
 
-@app.route("/feedback", methods=["POST"])
+@app.route("/api/feedback", methods=["POST"])
 def feedback():
     from flask import request
 
@@ -235,7 +219,7 @@ def feedback():
 
     return {"status": "success"}
 
-@app.route('/stats')
+@app.route('/api/stats')
 def stats():
     import sqlite3
 
@@ -278,10 +262,6 @@ def stats():
         "eye": eye,
         "mental": mental
     }
-
-@app.route('/stats_page')
-def stats_page():
-    return render_template('stats.html')
 
 if __name__ == "__main__":
     try:

@@ -14,6 +14,12 @@ fatigue_buffer = deque(maxlen=10)
 last_saved = None
 last_trigger_time = 0
 cooldown = 5  # seconds
+calibrating = False
+ear_list = []
+mar_list = []
+calibration_start_time = None
+calibration_duration = 10
+last_calibration_result = None
 
 app = Flask(__name__)
 CORS(app)
@@ -92,7 +98,7 @@ recommender = RecommendationEngine()
 # Initialize adaptive recommender
 ai_recommender = AdaptiveRecommender()
 # Start webcam
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 # Store fatigue status (shared with API)
 fatigue_data = {
@@ -101,19 +107,23 @@ fatigue_data = {
 }
 
 
-
-
 def generate_frames():
-    local_cap = cv2.VideoCapture(0)
 
-    global fatigue_data, last_saved, current_session_id, last_trigger_time
-
+    global fatigue_data, last_saved, current_session_id, last_trigger_time,  calibration_start_time, calibration_duration, last_calibration_result
+    
     while True:
-        success, frame = local_cap.read()
+        success, frame = cap.read()
         if not success:
+            print("Camera frame not captured")
             continue
 
-        frame, fatigue, severity = detector.process_frame(frame)
+        frame, fatigue, severity, ear, mar  = detector.process_frame(frame)
+        global calibrating, ear_list, mar_list
+
+        if calibrating:
+            ear_list.append(ear)
+            mar_list.append(mar)
+
 
         # Add to buffer
         fatigue_buffer.append((fatigue, severity))
@@ -121,29 +131,32 @@ def generate_frames():
         # Count occurrences
         counts = {}
         for f, s in fatigue_buffer:
-            key = (f, s)
-            counts[key] = counts.get(key, 0) + 1
+           key = (f, s)
+           counts[key] = counts.get(key, 0) + 1
 
         # Get most frequent
         stable = max(counts, key=counts.get)
 
         # Apply threshold
         if counts[stable] >= 6:
-            stable_fatigue, stable_severity = stable
+           stable_fatigue, stable_severity = stable
         else:
-            stable_fatigue, stable_severity = None, None
+           stable_fatigue, stable_severity = None, None
 
         #  Use STABLE values
         fatigue_data["fatigue"] = stable_fatigue
         fatigue_data["severity"] = stable_severity
+
 
         # SAVE
         current_time = time.time()
 
         if stable_fatigue is not None:
             current = stable_fatigue + str(stable_severity)
+        else:
+            current = None
 
-            if (current != last_saved and 
+        if (current != last_saved and 
                 current_time - last_trigger_time > cooldown):
 
                 save_fatigue_event(current_session_id,
@@ -155,36 +168,79 @@ def generate_frames():
 
         # Encode frame
         _, buffer = cv2.imencode(".jpg", frame)
-        frame_bytes = buffer.tobytes()
 
+        frame_bytes = buffer.tobytes()
         yield (
             b"--frame\r\n"
             b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
         )
 
-@app.route('/api/calibrate', methods=['GET'])
+
+@app.route('/api/start_calibration')
 def start_calibration():
-    from calibration import Calibrator
+    global calibrating, ear_list, mar_list,calibration_start_time
 
-    calibrator = Calibrator()
-    data = calibrator.run()
+    calibrating = True
+    ear_list = []
+    mar_list = []
+    calibration_start_time = time.time()
 
-    return jsonify({
-        "status": "completed",
-        "data": data
-    })
+    return {"status": "started"}
+
+@app.route('/api/stop_calibration')
+def stop_calibration():
+    global calibrating, ear_list, mar_list
+
+    calibrating = False
+
+    import numpy as np
+
+    ear_mean = np.mean(ear_list)
+    ear_std = np.std(ear_list)
+
+    mar_mean = np.mean(mar_list)
+    mar_std = np.std(mar_list)
+
+    from calibration import save_calibration
+    save_calibration(ear_mean, ear_std, mar_mean, mar_std)
+
+    return {
+        "ear_mean": float(ear_mean),
+        "ear_std": float(ear_std),
+        "mar_mean": float(mar_mean),
+        "mar_std": float(mar_std)
+    }
+
+#auto run
+#@app.route('/api/calibration_result')
+#def calibration_result():
+ #   global last_calibration_result
+
+  #  if last_calibration_result:
+   #     return last_calibration_result
+    #else:
+     #   return {"status": "pending"}
 
 @app.route('/')
 def api_root():
     return jsonify({
-        "message": "Smart Study Companion API running"
+        "message": "Smart Study Companion API running",
+        "endpoints": {
+            "/video_feed": "Live video stream with fatigue detection",
+            "/api/fatigue": "Current fatigue status and recommendation",
+            "/api/feedback": "Submit feedback on recommendations (POST)",
+            "/api/stats": "Study session statistics",
+            "/api/start_calibration": "Start calibration process",
+            "/api/stop_calibration": "Stop calibration process and save data",
+            "/api/calibration_result": "Get latest calibration results"
+        }
     })
 
 @app.route("/video_feed")
 def video_feed():
     return Response(
         generate_frames(),
-        mimetype="multipart/x-mixed-replace; boundary=frame",
+        mimetype="multipart/x-mixed-replace; boundary=frame"
     )
 
 
@@ -265,7 +321,7 @@ def stats():
 
 if __name__ == "__main__":
     try:
-        app.run(debug=True)
+        app.run(debug=True, use_reloader=False)
     finally:
         if current_session_id:
             end_session(current_session_id)

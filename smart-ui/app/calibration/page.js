@@ -2,57 +2,135 @@
 import { useState } from "react";
 
 export default function Calibration() {
-  const [loading, setLoading] = useState(false);
+  const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
 
-  const startCalibration = async () => {
-    setLoading(true);
+  const start = async () => {
+    await fetch("http://127.0.0.1:5000/api/start_calibration");
+    setRunning(true);
     setResult(null);
+  };
 
-    try {
-      const res = await fetch("http://127.0.0.1:5000/api/calibrate");
-      const data = await res.json();
-      setResult(data.data);
-    } catch (err) {
-      console.error(err);
-    }
-
-    setLoading(false);
+  const stop = async () => {
+    const res = await fetch("http://127.0.0.1:5000/api/stop_calibration");
+    const data = await res.json();
+    setResult(data);
+    setRunning(false);
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>🎯 Calibration</h1>
+    <div style={styles.container}>
+      <h1 style={styles.title}>🎯 Calibration Dashboard</h1>
 
-      <p>
-        Please keep your eyes open and mouth relaxed during calibration.
-      </p>
+      <div style={styles.grid}>
 
-      <button
-        onClick={startCalibration}
-        disabled={loading}
-        style={{
-          padding: "10px 20px",
-          backgroundColor: "#4CAF50",
-          color: "white",
-          border: "none",
-          cursor: "pointer"
-        }}
-      >
-        {loading ? "Calibrating..." : "Start Calibration"}
-      </button>
-
-      {loading && <p>📷 Camera running... Please wait</p>}
-
-      {result && (
-        <div style={{ marginTop: "20px" }}>
-          <h3>✅ Calibration Complete</h3>
-          <p>EAR Mean: {result.ear_mean}</p>
-          <p>EAR Std: {result.ear_std}</p>
-          <p>MAR Mean: {result.mar_mean}</p>
-          <p>MAR Std: {result.mar_std}</p>
+        {/* 🎥 LEFT: VIDEO */}
+        <div style={styles.videoCard}>
+          <h3>Live Camera</h3>
+          <img
+            src="http://127.0.0.1:5000/video_feed"
+            style={styles.video}
+          />
         </div>
-      )}
+
+        {/* 🧠 RIGHT: CONTROLS */}zzzz
+        <div style={styles.controlCard}>
+          <h3>Controls</h3>
+
+          {!running ? (
+            <button onClick={start} style={styles.startBtn}>
+              ▶ Start Calibration
+            </button>
+          ) : (
+            <button onClick={stop} style={styles.stopBtn}>
+              ⏹ Stop & Save
+            </button>
+          )}
+
+          <hr style={{ margin: "20px 0" }} />
+
+          <h3>Results</h3>
+
+          {result ? (
+            <div style={styles.resultBox}>
+              <p><b>EAR Mean:</b> {result.ear_mean.toFixed(4)}</p>
+              <p><b>EAR Std:</b> {result.ear_std.toFixed(4)}</p>
+              <p><b>MAR Mean:</b> {result.mar_mean.toFixed(4)}</p>
+              <p><b>MAR Std:</b> {result.mar_std.toFixed(4)}</p>
+            </div>
+          ) : (
+            <p style={{ color: "#888" }}>No data yet</p>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    padding: "30px",
+    fontFamily: "Segoe UI, sans-serif",
+    backgroundColor: "#f5f7fb",
+    minHeight: "100vh"
+  },
+
+  title: {
+    marginBottom: "20px"
+  },
+
+  grid: {
+    display: "flex",
+    gap: "20px"
+  },
+
+  videoCard: {
+    flex: 2,
+    background: "white",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
+  },
+
+  video: {
+    width: "100%",
+    borderRadius: "10px"
+  },
+
+  controlCard: {
+    flex: 1,
+    background: "white",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
+  },
+
+  startBtn: {
+    width: "100%",
+    padding: "12px",
+    backgroundColor: "#4CAF50",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "16px"
+  },
+
+  stopBtn: {
+    width: "100%",
+    padding: "12px",
+    backgroundColor: "#ff4d4d",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "16px"
+  },
+
+  resultBox: {
+    background: "#f1f3f6",
+    padding: "15px",
+    borderRadius: "8px"
+  }
+};

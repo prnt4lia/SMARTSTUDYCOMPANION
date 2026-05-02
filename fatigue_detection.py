@@ -114,4 +114,4 @@ class FatigueDetector:
         else:
             self.yawn_counter = max(0, self.yawn_counter - 1)
 
-        return frame, fatigue_type, severity
+        return frame, fatigue_type, severity, self.ear_thresh, self.mar_thresh

@@ -33,7 +33,7 @@ export default function Calibration() {
           />
         </div>
 
-        {/* 🧠 RIGHT: CONTROLS */}zzzz
+        {/* 🧠 RIGHT: CONTROLS */}
         <div style={styles.controlCard}>
           <h3>Controls</h3>
 

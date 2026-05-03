@@ -1,4 +1,5 @@
 import cv2
+#from cv2 import data
 import dlib
 import imutils
 import json
@@ -21,15 +22,27 @@ class FatigueDetector:
         self.ear_thresh = alpha * self.global_ear + (1 - alpha) * (data["ear_mean"] - 2 * data["ear_std"])
         self.mar_thresh = alpha * self.global_mar + (1 - alpha) * (data["mar_mean"] + 2.5 * data["mar_std"])
 
+        print("===== CALIBRATION LOADED =====")
+        print("EAR mean:", data["ear_mean"])
+        print("EAR std:", data["ear_std"])
+        print("MAR mean:", data["mar_mean"])
+        print("MAR std:", data["mar_std"])
+        print("EAR Threshold:", self.ear_thresh)
+        print("MAR Threshold:", self.mar_thresh)
+        print("==============================")
+
         # Frame counters
         self.eye_counter = 0
         self.yawn_counter = 0
 
         # Threshold frames
-        self.eye_low_frames = 20
-        self.eye_high_frames = 40
-        self.yawn_low_frames = 15
-        self.yawn_high_frames = 30
+        self.eye_low_frames = 50
+        self.eye_high_frames = 100
+        self.yawn_low_frames = 50
+        self.yawn_high_frames = 100
+
+        self.ear_history = []
+        self.mar_history = []
 
         # Load models
         self.detector = dlib.get_frontal_face_detector()
@@ -79,13 +92,26 @@ class FatigueDetector:
                    self.eye_aspect_ratio(rightEye)) / 2.0
             mar = self.mouth_aspect_ratio(mouth)
 
+            # -------- SMOOTHING --------
+            self.ear_history.append(ear)
+            self.mar_history.append(mar)
+
+            if len(self.ear_history) > 10:
+                self.ear_history.pop(0)
+
+            if len(self.mar_history) > 10:
+                self.mar_history.pop(0)
+
+            ear_avg = sum(self.ear_history) / len(self.ear_history)
+            mar_avg = sum(self.mar_history) / len(self.mar_history)
+
             # Draw contours (optional UI overlay)
             cv2.drawContours(frame, [cv2.convexHull(leftEye)], -1, (0, 255, 0), 1)
             cv2.drawContours(frame, [cv2.convexHull(rightEye)], -1, (0, 255, 0), 1)
             cv2.drawContours(frame, [cv2.convexHull(mouth)], -1, (255, 0, 0), 1)
 
         # ---------- EYE FATIGUE ----------
-        if ear < self.ear_thresh:
+        if ear_avg < self.ear_thresh:
             self.eye_counter += 1
 
             if self.eye_counter >= self.eye_high_frames:
@@ -97,10 +123,10 @@ class FatigueDetector:
                 severity = "low"
 
         else:
-            self.eye_counter = max(0, self.eye_counter - 1)
+            self.eye_counter = max(0, self.eye_counter - 2)
 
         # ---------- MENTAL FATIGUE ----------
-        if mar > self.mar_thresh:
+        if mar_avg > self.mar_thresh:
             self.yawn_counter += 1
 
             if self.yawn_counter >= self.yawn_high_frames:
@@ -112,6 +138,6 @@ class FatigueDetector:
                 severity = "low"
 
         else:
-            self.yawn_counter = max(0, self.yawn_counter - 1)
+            self.yawn_counter = max(0, self.yawn_counter - 2)
 
-        return frame, fatigue_type, severity, self.ear_thresh, self.mar_thresh
+        return frame, fatigue_type, severity, ear, mar

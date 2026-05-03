@@ -1,7 +1,8 @@
 from datetime import datetime
 
 import cv2
-from flask import Flask, Response, jsonify, render_template, redirect
+from cv2 import data
+from flask import Flask, Response, json, jsonify, render_template, redirect
 from flask_cors import CORS
 from adaptive_recommender import AdaptiveRecommender
 from database import init_db
@@ -96,7 +97,7 @@ detector = FatigueDetector()
 # Initialize recommendation engine
 recommender = RecommendationEngine()
 # Initialize adaptive recommender
-ai_recommender = AdaptiveRecommender()
+#ai_recommender = AdaptiveRecommender()
 # Start webcam
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
@@ -194,6 +195,7 @@ def stop_calibration():
     calibrating = False
 
     import numpy as np
+    import json
 
     ear_mean = np.mean(ear_list)
     ear_std = np.std(ear_list)
@@ -204,13 +206,19 @@ def stop_calibration():
     from calibration import save_calibration
     save_calibration(ear_mean, ear_std, mar_mean, mar_std)
 
-    return {
+    data = {
         "ear_mean": float(ear_mean),
         "ear_std": float(ear_std),
         "mar_mean": float(mar_mean),
         "mar_std": float(mar_std)
     }
 
+# SAVE TO JSON
+    with open("data/calibration_data.json", "w") as f:
+        json.dump(data, f)
+
+    return data
+    
 #auto run
 #@app.route('/api/calibration_result')
 #def calibration_result():
@@ -249,7 +257,7 @@ def fatigue_status():
     fatigue = fatigue_data["fatigue"]
     severity = fatigue_data["severity"]
 
-    recommendation = ai_recommender.get_recommendation(fatigue, severity)
+    recommendation = recommender.get_recommendation(fatigue, severity)
 
     return jsonify(
         {
@@ -260,18 +268,18 @@ def fatigue_status():
     )
 
 
-@app.route("/api/feedback", methods=["POST"])
-def feedback():
-    from flask import request
+#@app.route("/api/feedback", methods=["POST"])
+#def feedback():
+   # from flask import request
 
-    data = request.json
+    #data = request.json
 
-    ai_recommender.update_feedback(
-        data["fatigue"],
-        data["severity"],
-        data["recommendation"],
-        data["followed"],
-    )
+    #ai_recommender.update_feedback(
+     #   data["fatigue"],
+      #  data["severity"],
+       # data["recommendation"],
+        #data["followed"],
+    #)
 
     return {"status": "success"}
 

@@ -36,10 +36,10 @@ class FatigueDetector:
         self.yawn_counter = 0
 
         # Threshold frames
-        self.eye_low_frames = 50
-        self.eye_high_frames = 100
-        self.yawn_low_frames = 50
-        self.yawn_high_frames = 100
+        self.eye_low_frames = 30
+        self.eye_high_frames = 50
+        self.yawn_low_frames = 30
+        self.yawn_high_frames = 50
 
         self.ear_history = []
         self.mar_history = []
@@ -77,6 +77,8 @@ class FatigueDetector:
 
         ear = 1.0
         mar = 0.0
+        ear_avg = ear
+        mar_avg = mar
 
         faces = self.detector(gray)
 
@@ -91,6 +93,9 @@ class FatigueDetector:
             ear = (self.eye_aspect_ratio(leftEye) +
                    self.eye_aspect_ratio(rightEye)) / 2.0
             mar = self.mouth_aspect_ratio(mouth)
+
+            #use for debugging
+            # print(f"EAR: {ear:.3f} | MAR: {mar:.3f}")
 
             # -------- SMOOTHING --------
             self.ear_history.append(ear)
@@ -109,10 +114,11 @@ class FatigueDetector:
             cv2.drawContours(frame, [cv2.convexHull(leftEye)], -1, (0, 255, 0), 1)
             cv2.drawContours(frame, [cv2.convexHull(rightEye)], -1, (0, 255, 0), 1)
             cv2.drawContours(frame, [cv2.convexHull(mouth)], -1, (255, 0, 0), 1)
-
+   
         # ---------- EYE FATIGUE ----------
         if ear_avg < self.ear_thresh:
             self.eye_counter += 1
+            print(f"⚠ Low EAR detected: {ear_avg:.3f} (Threshold: {self.ear_thresh:.3f})")
 
             if self.eye_counter >= self.eye_high_frames:
                 fatigue_type = "eye_fatigue"
@@ -123,12 +129,13 @@ class FatigueDetector:
                 severity = "low"
 
         else:
-            self.eye_counter = max(0, self.eye_counter - 2)
+            self.eye_counter = max(0, self.eye_counter - 1)
 
         # ---------- MENTAL FATIGUE ----------
         if mar_avg > self.mar_thresh:
             self.yawn_counter += 1
-
+            print(f"⚠ High MAR detected: {mar_avg:.3f} (Threshold: {self.mar_thresh:.3f})")
+            
             if self.yawn_counter >= self.yawn_high_frames:
                 fatigue_type = "mental_fatigue"
                 severity = "high"
@@ -138,6 +145,6 @@ class FatigueDetector:
                 severity = "low"
 
         else:
-            self.yawn_counter = max(0, self.yawn_counter - 2)
+            self.yawn_counter = max(0, self.yawn_counter - 1)
 
         return frame, fatigue_type, severity, ear, mar

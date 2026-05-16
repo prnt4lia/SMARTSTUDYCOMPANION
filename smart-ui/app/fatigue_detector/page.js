@@ -6,38 +6,60 @@ export default function FatiguePage() {
   const [showPopup, setShowPopup] = useState(false);
   const [popupData, setPopupData] = useState(null);
   const [lastAlert, setLastAlert] = useState(null);
+  const [detecting, setDetecting] = useState(false);
+ 
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch("http://127.0.0.1:5000/api/fatigue");
-        const data = await res.json();
-        setStatus(data);
 
-        // Trigger popup ONLY when fatigue exists
+  if (!detecting) return;
+
+  const interval = setInterval(async () => {
+
+    try {
+      const res = await fetch("http://127.0.0.1:5000/api/fatigue");
+      const data = await res.json();
+
+      console.log(data);
+
+      setStatus(data);
+
       if (
-          data.fatigue &&
-          data.severity === "high" &&
-          data.fatigue !== lastAlert
+        data.fatigue &&
+        data.severity &&
+        `${data.fatigue}-${data.severity}` !== lastAlert
       ) {
-          setPopupData(data);
-          setShowPopup(true);
-          setLastAlert(data.fatigue);
-}
+        console.log("POPUP TRIGGERED");
 
-      } catch (err) {
-        console.error(err);
+        setPopupData(data);
+        setShowPopup(true);
+        setLastAlert(`${data.fatigue}-${data.severity}`);
       }
-    }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+    } catch (err) {
+      console.error(err);
+    }
+
+  }, 1000);
+
+  return () => clearInterval(interval);
+
+}, [detecting, lastAlert]);
 
   const getColor = () => {
     if (!status?.severity) return "#ccc";
     if (status.severity === "low") return "#FFA500";
-    if (status.severity === "high") return "#FF4D4D";
+    if (status.severity === "high") return "#FF4D4D"
     return "#4CAF50";
+  };
+
+  const startDetection = async () => {
+    await fetch("http://127.0.0.1:5000/api/start_detection");
+    setDetecting(true);
+  };
+
+  const stopDetection = async () => {
+    await fetch("http://127.0.0.1:5000/api/stop_detection");
+    setDetecting(false);
   };
 
 
@@ -66,6 +88,24 @@ export default function FatiguePage() {
               <p><b>Severity:</b> {status?.severity || "Normal"}</p>
             </div>
 
+            {/*  CONTROL BUTTON */}
+            <div style={{ background: "white", padding: "20px", borderRadius: "12px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+
+              <h3>Controls</h3>
+
+              {!detecting ? (
+                <button onClick={startDetection} style={styles.startBtn}>
+                  ▶ Start Detection
+                </button>
+              ) : (
+                <button onClick={stopDetection} style={styles.stopBtn}>
+                  ⏹ Stop Detection
+                </button>
+              )}
+
+            </div>
+            
             <div style={styles.recommendBox}>
               <h3>💡 Smart Recommendation</h3>
 
@@ -104,6 +144,7 @@ export default function FatiguePage() {
                 onClick={() => {
                   alert("⏳ Break started!");
                   setShowPopup(false);
+                  setLastAlert(null);
                 }}
               >
                 Take Break
@@ -111,7 +152,10 @@ export default function FatiguePage() {
 
               <button
                 style={styles.continueBtn}
-                onClick={() => setShowPopup(false)}
+               onClick={() => {
+                              setShowPopup(false);
+                              setLastAlert(null);
+                              }}
               >
                 Continue
               </button>
@@ -220,5 +264,29 @@ const styles = {
   padding: "10px",
   borderRadius: "8px",
   cursor: "pointer"
+},
+
+startBtn: {
+  width: "100%",
+  padding: "14px",
+  backgroundColor: "#4CAF50",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  cursor: "pointer",
+  fontSize: "16px",
+  fontWeight: "bold"
+},
+
+stopBtn: {
+  width: "100%",
+  padding: "14px",
+  backgroundColor: "#ff4d4d",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  cursor: "pointer",
+  fontSize: "16px",
+  fontWeight: "bold"
 }
 };

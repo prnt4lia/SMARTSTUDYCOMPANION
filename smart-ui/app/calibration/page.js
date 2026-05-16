@@ -1,9 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useState,useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Calibration() {
+
+  const router = useRouter();
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
+  const [completed, setCompleted] = useState(false);
 
   const start = async () => {
     await fetch("http://127.0.0.1:5000/api/start_calibration");
@@ -11,12 +15,47 @@ export default function Calibration() {
     setResult(null);
   };
 
-  const stop = async () => {
-    const res = await fetch("http://127.0.0.1:5000/api/stop_calibration");
-    const data = await res.json();
-    setResult(data);
-    setRunning(false);
-  };
+  useEffect(() => {
+
+  if (!running) return;
+
+  const interval = setInterval(async () => {
+
+    try {
+
+      const res = await fetch(
+        "http://127.0.0.1:5000/api/calibration_result"
+      );
+
+      const data = await res.json();
+
+      if (data.status == "completed" || data.status == "failed") {
+
+        setResult(data);
+
+        setRunning(false);
+
+        setCompleted(data.status == "completed");
+
+        clearInterval(interval);
+      }
+
+    } catch (err) {
+      console.error(err);
+    }
+
+  }, 1000);
+
+  return () => clearInterval(interval);
+
+}, [running]);
+
+  //const stop = async () => {
+    //const res = await fetch("http://127.0.0.1:5000/api/stop_calibration");
+    //const data = await res.json();
+    //setResult(data);
+    //setRunning(false);
+  //};
 
   return (
     <div style={styles.container}>
@@ -29,6 +68,7 @@ export default function Calibration() {
           <h3>Live Camera</h3>
           <img
             src="http://127.0.0.1:5000/video_feed"
+            alt="Live camera feed"
             style={styles.video}
           />
         </div>
@@ -37,27 +77,67 @@ export default function Calibration() {
         <div style={styles.controlCard}>
           <h3>Controls</h3>
 
-          {!running ? (
-            <button onClick={start} style={styles.startBtn}>
-              ▶ Start Calibration
-            </button>
-          ) : (
-            <button onClick={stop} style={styles.stopBtn}>
-              ⏹ Stop & Save
-            </button>
-          )}
+          {!running && !completed && (
+  <button onClick={start} style={styles.startBtn}>
+    ▶ Start Calibration
+  </button>
+)}
 
+{running && (
+  <div style={styles.runningBox}>
+    ⏳ Calibration in progress...
+  </div>
+)}
+
+{completed && (
+  <>
+    <div style={styles.successBox}>
+      ✅ Calibration Successful
+    </div>
+
+    <button
+      style={styles.recalibrateBtn}
+      onClick={() => {
+        setCompleted(false);
+        setResult(null);
+        start();
+      }}
+    >
+      ↻ Recalibrate
+    </button>
+
+    <button
+      style={styles.detectorBtn}
+      onClick={() => router.push("/fatigue_detector")}
+    >
+      ▶ Start Fatigue Detector
+    </button>
+  </>
+)}
           <hr style={{ margin: "20px 0" }} />
 
           <h3>Results</h3>
 
-          {result ? (
-            <div style={styles.resultBox}>
-              <p><b>EAR Mean:</b> {result.ear_mean.toFixed(4)}</p>
-              <p><b>EAR Std:</b> {result.ear_std.toFixed(4)}</p>
-              <p><b>MAR Mean:</b> {result.mar_mean.toFixed(4)}</p>
-              <p><b>MAR Std:</b> {result.mar_std.toFixed(4)}</p>
+          {result?.status == "failed" ? (
+            <div style={styles.errorBox}>
+              {result.message || "Calibration failed. Please try again."}
             </div>
+          ) : result ? (
+            <>
+              <div style={styles.resultBox}>
+                <p><b>EAR Mean:</b> {result.ear_mean.toFixed(4)}</p>
+                <p><b>EAR Std:</b> {result.ear_std.toFixed(4)}</p>
+                <p><b>MAR Mean:</b> {result.mar_mean.toFixed(4)}</p>
+                <p><b>MAR Std:</b> {result.mar_std.toFixed(4)}</p>
+              </div>
+
+              <button
+                  style={styles.detectorBtn}
+                  onClick={() => router.push("/fatigue_detector")}
+              >
+                 ▶ Start Fatigue Detector
+              </button>
+            </>
           ) : (
             <p style={{ color: "#888" }}>No data yet</p>
           )}
@@ -132,5 +212,61 @@ const styles = {
     background: "#f1f3f6",
     padding: "15px",
     borderRadius: "8px"
-  }
+  },
+
+  detectorBtn: {
+  width: "100%",
+  padding: "14px",
+  marginTop: "15px",
+  backgroundColor: "#2563eb",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  cursor: "pointer",
+  fontSize: "16px",
+  fontWeight: "bold"
+},
+
+runningBox: {
+  padding: "15px",
+  background: "#fff7e6",
+  borderRadius: "10px",
+  marginTop: "10px",
+  textAlign: "center",
+  fontWeight: "bold"
+},
+
+successBox: {
+  padding: "15px",
+  background: "#e8f5e9",
+  color: "#2e7d32",
+  borderRadius: "10px",
+  marginTop: "10px",
+  textAlign: "center",
+  fontWeight: "bold"
+},
+
+errorBox: {
+  padding: "15px",
+  background: "#fdecea",
+  color: "#b91c1c",
+  borderRadius: "10px",
+  marginTop: "10px",
+  textAlign: "center",
+  fontWeight: "bold"
+},
+
+recalibrateBtn: {
+  width: "100%",
+  padding: "14px",
+  marginTop: "15px",
+  backgroundColor: "#f59e0b",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  cursor: "pointer",
+  fontSize: "16px",
+  fontWeight: "bold"
+}
+
 };

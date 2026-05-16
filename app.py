@@ -19,8 +19,10 @@ calibrating = False
 ear_list = []
 mar_list = []
 calibration_start_time = None
-calibration_duration = 10
+calibration_duration = 15
 last_calibration_result = None
+detection_running = False
+calibration_max_frames = 300
 
 app = Flask(__name__)
 CORS(app)
@@ -118,12 +120,76 @@ def generate_frames():
             print("Camera frame not captured")
             continue
 
-        frame, fatigue, severity, ear, mar  = detector.process_frame(frame)
+        global detection_running
         global calibrating, ear_list, mar_list
 
-        if calibrating:
+        # Default values
+        fatigue = None
+        severity = None
+        ear = 0
+        mar = 0
+
+        if detection_running or calibrating:
+            frame, fatigue, severity, ear, mar = detector.process_frame(frame)
+
+        if calibrating and calibration_start_time is not None:
             ear_list.append(ear)
             mar_list.append(mar)
+
+            elapsed = time.time() - calibration_start_time
+
+            if (
+                elapsed >= calibration_duration 
+                #(len(ear_list) >= calibration_max_frames and len(mar_list) >= calibration_max_frames) 
+                ):
+                print("✅ Calibration completed automatically")
+
+                calibrating = False
+
+                import numpy as np
+
+                ear_mean = np.mean(ear_list)
+                ear_std = np.std(ear_list)
+                mar_mean = np.mean(mar_list)
+                mar_std = np.std(mar_list)
+
+                from calibration import save_calibration
+
+                 # SAVE TO DATABASE
+                save_calibration( ear_mean, ear_std, mar_mean, mar_std)
+
+                data = {
+                        "status": "completed",
+                        "ear_mean": float(ear_mean),
+                        "ear_std": float(ear_std),
+                        "mar_mean": float(mar_mean),
+                        "mar_std": float(mar_std)
+            }
+
+                # SAVE FOR FRONTEND
+                global last_calibration_result
+                last_calibration_result = data
+
+                print("✅ Calibration saved to database")
+
+            #print("Collecting:", len(ear_list))
+
+            #else:
+                #fatigue, severity = None, None
+
+        # Always process frame
+        #frame, fatigue, severity, ear, mar = detector.process_frame(frame)
+
+        # Calibration is independent
+        #if calibrating:
+         #   ear_list.append(ear)
+          #  mar_list.append(mar)
+           # print("Collecting:", len(ear_list))
+
+        # Detection control only affects output
+        #if not detection_running:
+         #    fatigue, severity = None, None
+
 
 
         # Add to buffer
@@ -188,46 +254,48 @@ def start_calibration():
 
     return {"status": "started"}
 
+@app.route('/api/calibration_status')
+def calibration_status():
+    
+    global last_calibration_result
+    last_calibration_result = None
+    ear_list = []
+    mar_list = []
+    global calibrating
+
+    if calibrating:
+        return {
+            "status": "running"
+        }
+
+    else:
+        return {
+            "status": "completed"
+        }
+    
+
 @app.route('/api/stop_calibration')
 def stop_calibration():
-    global calibrating, ear_list, mar_list
+
+    global calibrating
+    global last_calibration_result
 
     calibrating = False
 
-    import numpy as np
-    import json
+    if last_calibration_result:
+        return last_calibration_result
 
-    ear_mean = np.mean(ear_list)
-    ear_std = np.std(ear_list)
-
-    mar_mean = np.mean(mar_list)
-    mar_std = np.std(mar_list)
-
-    from calibration import save_calibration
-    save_calibration(ear_mean, ear_std, mar_mean, mar_std)
-
-    data = {
-        "ear_mean": float(ear_mean),
-        "ear_std": float(ear_std),
-        "mar_mean": float(mar_mean),
-        "mar_std": float(mar_std)
-    }
-
-# SAVE TO JSON
-    with open("data/calibration_data.json", "w") as f:
-        json.dump(data, f)
-
-    return data
+    return {"status": "pending"}
     
 #auto run
-#@app.route('/api/calibration_result')
-#def calibration_result():
- #   global last_calibration_result
+@app.route('/api/calibration_result')
+def calibration_result():
+    global last_calibration_result
 
-  #  if last_calibration_result:
-   #     return last_calibration_result
-    #else:
-     #   return {"status": "pending"}
+    if last_calibration_result:
+        return last_calibration_result
+    else:
+        return {"status": "pending"}
 
 @app.route('/')
 def api_root():
@@ -267,21 +335,18 @@ def fatigue_status():
         }
     )
 
+@app.route('/api/start_detection')
+def start_detection():
+    global detection_running
+    detection_running = True
+    return {"status": "started"}
 
-#@app.route("/api/feedback", methods=["POST"])
-#def feedback():
-   # from flask import request
+@app.route('/api/stop_detection')
+def stop_detection():
+    global detection_running
+    detection_running = False
+    return {"status": "stopped"}
 
-    #data = request.json
-
-    #ai_recommender.update_feedback(
-     #   data["fatigue"],
-      #  data["severity"],
-       # data["recommendation"],
-        #data["followed"],
-    #)
-
-    return {"status": "success"}
 
 @app.route('/api/stats')
 def stats():

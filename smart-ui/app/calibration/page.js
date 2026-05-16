@@ -29,13 +29,13 @@ export default function Calibration() {
 
       const data = await res.json();
 
-      if (data.status == "completed" || data.status == "failed") {
+      if (data.status === "completed") {
 
         setResult(data);
 
         setRunning(false);
 
-        setCompleted(data.status == "completed");
+        setCompleted(true);
 
         clearInterval(interval);
       }
@@ -68,7 +68,6 @@ export default function Calibration() {
           <h3>Live Camera</h3>
           <img
             src="http://127.0.0.1:5000/video_feed"
-            alt="Live camera feed"
             style={styles.video}
           />
         </div>
@@ -118,11 +117,7 @@ export default function Calibration() {
 
           <h3>Results</h3>
 
-          {result?.status == "failed" ? (
-            <div style={styles.errorBox}>
-              {result.message || "Calibration failed. Please try again."}
-            </div>
-          ) : result ? (
+          {result ? (
             <>
               <div style={styles.resultBox}>
                 <p><b>EAR Mean:</b> {result.ear_mean.toFixed(4)}</p>
@@ -240,16 +235,6 @@ successBox: {
   padding: "15px",
   background: "#e8f5e9",
   color: "#2e7d32",
-  borderRadius: "10px",
-  marginTop: "10px",
-  textAlign: "center",
-  fontWeight: "bold"
-},
-
-errorBox: {
-  padding: "15px",
-  background: "#fdecea",
-  color: "#b91c1c",
   borderRadius: "10px",
   marginTop: "10px",
   textAlign: "center",

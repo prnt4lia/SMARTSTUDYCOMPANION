@@ -1,6 +1,11 @@
 "use client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function Home() {
+
+const router = useRouter();
+
   return (
     <div style={styles.container}>
       
@@ -11,12 +16,12 @@ export default function Home() {
       </p>
 
       <div style={styles.buttonContainer}>
-        <button style={styles.loginButton}>
+        <button style={styles.loginButton} onClick={() => router.push("/login")}>          
           Login
         </button>
 
-        <button style={styles.signupButton}>
-          Sign Up
+        <button style={styles.registerButton} onClick={() => router.push("/register")}>
+          Register
         </button>
       </div>
 
@@ -62,7 +67,7 @@ const styles = {
     color: "#333"
   },
 
-  signupButton: {
+  registerButton: {
     padding: "12px 24px",
     fontSize: "16px",
     borderRadius: "8px",

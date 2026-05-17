@@ -68,7 +68,7 @@ class FatigueDetector:
         return (A + B + C) / (2.0 * D)
 
     # ---------- MAIN PROCESS FUNCTION ----------
-    def process_frame(self, frame):
+    def process_frame(self, frame, detect_fatigue=True):
         frame = imutils.resize(frame, width=450)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -114,37 +114,38 @@ class FatigueDetector:
             cv2.drawContours(frame, [cv2.convexHull(leftEye)], -1, (0, 255, 0), 1)
             cv2.drawContours(frame, [cv2.convexHull(rightEye)], -1, (0, 255, 0), 1)
             cv2.drawContours(frame, [cv2.convexHull(mouth)], -1, (255, 0, 0), 1)
-   
-        # ---------- EYE FATIGUE ----------
-        if ear_avg < self.ear_thresh:
-            self.eye_counter += 1
-            print(f"⚠ Low EAR detected: {ear_avg:.3f} (Threshold: {self.ear_thresh:.3f})")
 
-            if self.eye_counter >= self.eye_high_frames:
-                fatigue_type = "eye_fatigue"
-                severity = "high"
+        if detect_fatigue:
+            # ---------- EYE FATIGUE ----------
+            if ear_avg < self.ear_thresh:
+                self.eye_counter += 1
+                print(f"⚠ Low EAR detected: {ear_avg:.3f} (Threshold: {self.ear_thresh:.3f})")
 
-            elif self.eye_counter >= self.eye_low_frames:
-                fatigue_type = "eye_fatigue"
-                severity = "low"
+                if self.eye_counter >= self.eye_high_frames:
+                    fatigue_type = "eye_fatigue"
+                    severity = "high"
 
-        else:
-            self.eye_counter = max(0, self.eye_counter - 1)
+                elif self.eye_counter >= self.eye_low_frames:
+                    fatigue_type = "eye_fatigue"
+                    severity = "low"
 
-        # ---------- MENTAL FATIGUE ----------
-        if mar_avg > self.mar_thresh:
-            self.yawn_counter += 1
-            print(f"⚠ High MAR detected: {mar_avg:.3f} (Threshold: {self.mar_thresh:.3f})")
-            
-            if self.yawn_counter >= self.yawn_high_frames:
-                fatigue_type = "mental_fatigue"
-                severity = "high"
+            else:
+                self.eye_counter = max(0, self.eye_counter - 1)
 
-            elif self.yawn_counter >= self.yawn_low_frames:
-                fatigue_type = "mental_fatigue"
-                severity = "low"
+            # ---------- MENTAL FATIGUE ----------
+            if mar_avg > self.mar_thresh:
+                self.yawn_counter += 1
+                print(f"⚠ High MAR detected: {mar_avg:.3f} (Threshold: {self.mar_thresh:.3f})")
+                
+                if self.yawn_counter >= self.yawn_high_frames:
+                    fatigue_type = "mental_fatigue"
+                    severity = "high"
 
-        else:
-            self.yawn_counter = max(0, self.yawn_counter - 1)
+                elif self.yawn_counter >= self.yawn_low_frames:
+                    fatigue_type = "mental_fatigue"
+                    severity = "low"
+
+            else:
+                self.yawn_counter = max(0, self.yawn_counter - 1)
 
         return frame, fatigue_type, severity, ear, mar

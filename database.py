@@ -3,7 +3,15 @@ def init_db():
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-
+    
+    # Users table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT
+    )
+    """)
     # Calibration data
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS calibration_data (

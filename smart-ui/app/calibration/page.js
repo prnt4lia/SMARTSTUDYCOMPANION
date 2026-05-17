@@ -75,24 +75,32 @@ export default function Calibration() {
         {/* 🧠 RIGHT: CONTROLS */}
         <div style={styles.controlCard}>
           <h3>Controls</h3>
+            <div style={styles.instructionBox}>
+                <h4 style={{ marginTop: 0 }}>📌 Calibration Instructions</h4>
+
+                <ul style={styles.instructions}>
+                <li>Keep your head straight</li>
+                <li>Blink naturally a few times</li>
+                <li>Keep your mouth relaxed</li>
+                <li>Avoid opening mouth widely</li>
+                <li>Stay within camera frame</li>
+                </ul>
+            </div>
 
           {!running && !completed && (
-  <button onClick={start} style={styles.startBtn}>
-    ▶ Start Calibration
-  </button>
-)}
+          <button onClick={start} style={styles.startBtn}>▶ Start Calibration
+        </button>
+    )}
 
-{running && (
-  <div style={styles.runningBox}>
-    ⏳ Calibration in progress...
-  </div>
-)}
+          {running && (
+          <div style={styles.runningBox}>⏳ Calibration in progress...
+        </div>
+    )}
 
-{completed && (
-  <>
-    <div style={styles.successBox}>
-      ✅ Calibration Successful
-    </div>
+          {completed && (
+        <>
+          <div style={styles.successBox}>✅ Calibration Successful
+        </div>
 
     <button
       style={styles.recalibrateBtn}
@@ -126,12 +134,7 @@ export default function Calibration() {
                 <p><b>MAR Std:</b> {result.mar_std.toFixed(4)}</p>
               </div>
 
-              <button
-                  style={styles.detectorBtn}
-                  onClick={() => router.push("/fatigue_detector")}
-              >
-                 ▶ Start Fatigue Detector
-              </button>
+              
             </>
           ) : (
             <p style={{ color: "#888" }}>No data yet</p>
@@ -252,6 +255,21 @@ recalibrateBtn: {
   cursor: "pointer",
   fontSize: "16px",
   fontWeight: "bold"
+},
+
+instructionBox: {
+  background: "#eef4ff",
+  padding: "15px",
+  borderRadius: "10px",
+  marginBottom: "20px",
+  border: "1px solid #c7dbff"
+},
+
+instructions: {
+  paddingLeft: "20px",
+  lineHeight: "1.8",
+  color: "#333",
+  fontSize: "14px"
 }
 
 };

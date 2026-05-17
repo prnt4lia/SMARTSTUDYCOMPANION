@@ -2,10 +2,11 @@ from datetime import datetime
 
 import cv2
 from cv2 import data
-from flask import Flask, Response, json, jsonify, render_template, redirect
+from flask import Flask, Response, json, jsonify, render_template, redirect, request
 from flask_cors import CORS
 from adaptive_recommender import AdaptiveRecommender
 from database import init_db
+import sqlite3
 from fatigue_detection import FatigueDetector
 from recommendation_engine import RecommendationEngine
 from collections import deque
@@ -112,8 +113,9 @@ fatigue_data = {
 
 def generate_frames():
 
-    global fatigue_data, last_saved, current_session_id, last_trigger_time,  calibration_start_time, calibration_duration, last_calibration_result
+    global fatigue_data, last_saved, current_session_id, last_trigger_time,  calibration_start_time, calibration_duration, last_calibration_result,detector
     
+
     while True:
         success, frame = cap.read()
         if not success:
@@ -129,8 +131,18 @@ def generate_frames():
         ear = 0
         mar = 0
 
-        if detection_running or calibrating:
-            frame, fatigue, severity, ear, mar = detector.process_frame(frame)
+        if calibrating:
+            frame, fatigue, severity, ear, mar = detector.process_frame(frame, detect_fatigue=False)
+
+        elif detection_running:
+            frame, fatigue, severity, ear, mar = detector.process_frame(frame, detect_fatigue=True)
+
+        # Idle mode
+        else:
+            fatigue = None
+            severity = None
+            ear = 0
+            mar = 0
 
         if calibrating and calibration_start_time is not None:
             ear_list.append(ear)
@@ -153,10 +165,7 @@ def generate_frames():
                 mar_mean = np.mean(mar_list)
                 mar_std = np.std(mar_list)
 
-                from calibration import save_calibration
-
-                 # SAVE TO DATABASE
-                save_calibration( ear_mean, ear_std, mar_mean, mar_std)
+               
 
                 data = {
                         "status": "completed",
@@ -166,31 +175,22 @@ def generate_frames():
                         "mar_std": float(mar_std)
             }
 
+                with open("data/calibration_data.json", "w") as f:
+                    json.dump(data, f)
+
+                from calibration import save_calibration
+                save_calibration(ear_mean, ear_std, mar_mean, mar_std)
+                                
+
+                detector = FatigueDetector()
+
                 # SAVE FOR FRONTEND
                 global last_calibration_result
                 last_calibration_result = data
 
                 print("✅ Calibration saved to database")
 
-            #print("Collecting:", len(ear_list))
-
-            #else:
-                #fatigue, severity = None, None
-
-        # Always process frame
-        #frame, fatigue, severity, ear, mar = detector.process_frame(frame)
-
-        # Calibration is independent
-        #if calibrating:
-         #   ear_list.append(ear)
-          #  mar_list.append(mar)
-           # print("Collecting:", len(ear_list))
-
-        # Detection control only affects output
-        #if not detection_running:
-         #    fatigue, severity = None, None
-
-
+       
 
         # Add to buffer
         fatigue_buffer.append((fatigue, severity))
@@ -243,6 +243,85 @@ def generate_frames():
         )
 
 
+@app.route("/api/register", methods=["POST"])
+def register():
+
+    data = request.json
+
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return jsonify({
+            "success": False,
+            "message": "Missing username or password"
+        })
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    try:
+
+        cursor.execute("""
+        INSERT INTO users (username, password)
+        VALUES (?, ?)
+        """, (username, password))
+
+        conn.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "User registered successfully"
+        })
+
+    except sqlite3.IntegrityError:
+
+        return jsonify({
+            "success": False,
+            "message": "Username already exists"
+        })
+
+    finally:
+        conn.close()
+
+
+@app.route("/api/login", methods=["POST"])
+def login():
+
+    data = request.json
+
+    username = data.get("username")
+    password = data.get("password")
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT * FROM users
+    WHERE username=? AND password=?
+    """, (username, password))
+
+    user = cursor.fetchone()
+
+    conn.close()
+
+    if user:
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "user_id": user[0],
+            "username": user[1]
+        })
+
+    else:
+
+        return jsonify({
+            "success": False,
+            "message": "Invalid username or password"
+        })
+    
+    
 @app.route('/api/start_calibration')
 def start_calibration():
     global calibrating, ear_list, mar_list,calibration_start_time
@@ -259,8 +338,7 @@ def calibration_status():
     
     global last_calibration_result
     last_calibration_result = None
-    ear_list = []
-    mar_list = []
+    
     global calibrating
 
     if calibrating:
@@ -346,6 +424,7 @@ def stop_detection():
     global detection_running
     detection_running = False
     return {"status": "stopped"}
+
 
 
 @app.route('/api/stats')

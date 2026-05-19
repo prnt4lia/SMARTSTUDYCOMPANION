@@ -16,6 +16,7 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS calibration_data (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         ear_mean REAL,
         ear_std REAL,
         mar_mean REAL,
@@ -28,6 +29,7 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS study_sessions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         start_time DATETIME,
         end_time DATETIME,
         duration INTEGER
@@ -38,6 +40,7 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS fatigue_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         session_id INTEGER,
         fatigue TEXT,
         severity TEXT,

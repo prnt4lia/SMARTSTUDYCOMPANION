@@ -24,6 +24,8 @@ calibration_duration = 15
 last_calibration_result = None
 detection_running = False
 calibration_max_frames = 300
+current_user_id = None
+current_session_id = None
 
 app = Flask(__name__)
 CORS(app)
@@ -74,8 +76,8 @@ def start_session():
 
     return session_id
 
+def save_fatigue_event(session_id, user_id, fatigue, severity):
 
-def save_fatigue_event(session_id, fatigue, severity):
     import sqlite3
 
     conn = sqlite3.connect("database.db")
@@ -83,17 +85,27 @@ def save_fatigue_event(session_id, fatigue, severity):
 
     cursor.execute(
         """
-        INSERT INTO fatigue_events (session_id, fatigue, severity)
-        VALUES (?, ?, ?)
+        INSERT INTO fatigue_events (
+            session_id,
+            user_id,
+            fatigue,
+            severity
+        )
+        VALUES (?, ?, ?, ?)
         """,
-        (session_id, fatigue, severity),
+        (
+            session_id,
+            user_id,
+            fatigue,
+            severity
+        ),
     )
 
     conn.commit()
     conn.close()
 
 
-current_session_id = start_session()
+#current_session_id = start_session()
 
 # Initialize detector
 detector = FatigueDetector()
@@ -179,7 +191,7 @@ def generate_frames():
                     json.dump(data, f)
 
                 from calibration import save_calibration
-                save_calibration(ear_mean, ear_std, mar_mean, mar_std)
+                save_calibration(current_user_id,ear_mean, ear_std, mar_mean, mar_std)
                                 
 
                 detector = FatigueDetector()
@@ -227,6 +239,7 @@ def generate_frames():
                 current_time - last_trigger_time > cooldown):
 
                 save_fatigue_event(current_session_id,
+                                    current_user_id,
                                    stable_fatigue,
                                    stable_severity)
 
@@ -242,6 +255,33 @@ def generate_frames():
             b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
         )
 
+def start_session(user_id):
+
+    import sqlite3
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    cursor.execute(
+        """
+        INSERT INTO study_sessions (
+            user_id,
+            start_time
+        )
+        VALUES (?, ?)
+        """,
+        (user_id, start_time),
+    )
+
+    conn.commit()
+
+    session_id = cursor.lastrowid
+
+    conn.close()
+
+    return session_id
 
 @app.route("/api/register", methods=["POST"])
 def register():
@@ -307,6 +347,9 @@ def login():
 
     if user:
 
+        global current_user_id
+        current_user_id = user[0]
+
         return jsonify({
             "success": True,
             "message": "Login successful",
@@ -322,13 +365,27 @@ def login():
         })
     
     
-@app.route('/api/start_calibration')
+@app.route('/api/start_calibration', methods=["POST"])
 def start_calibration():
-    global calibrating, ear_list, mar_list,calibration_start_time
+
+    global calibrating
+    global ear_list
+    global mar_list
+    global calibration_start_time
+    global current_user_id
+    global last_calibration_result
+
+    data = request.json
+
+    current_user_id = data["user_id"]
 
     calibrating = True
+
     ear_list = []
     mar_list = []
+
+    last_calibration_result = None
+
     calibration_start_time = time.time()
 
     return {"status": "started"}
@@ -352,7 +409,7 @@ def calibration_status():
         }
     
 
-@app.route('/api/stop_calibration')
+@app.route('/api/stop_calibration', methods=["POST"])
 def stop_calibration():
 
     global calibrating
@@ -413,13 +470,24 @@ def fatigue_status():
         }
     )
 
-@app.route('/api/start_detection')
+@app.route('/api/start_detection', methods=["POST"])
 def start_detection():
+
     global detection_running
+    global current_user_id
+    global current_session_id
+
+    data = request.json
+
+    current_user_id = data["user_id"]
+
+    current_session_id = start_session(current_user_id)
+
     detection_running = True
+
     return {"status": "started"}
 
-@app.route('/api/stop_detection')
+@app.route('/api/stop_detection', methods=["POST"])
 def stop_detection():
     global detection_running
     detection_running = False

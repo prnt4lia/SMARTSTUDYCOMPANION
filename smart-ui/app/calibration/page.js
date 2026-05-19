@@ -4,16 +4,62 @@ import { useRouter } from "next/navigation";
 
 export default function Calibration() {
 
+  const [user, setUser] = useState(null);
   const router = useRouter();
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
   const [completed, setCompleted] = useState(false);
 
-  const start = async () => {
-    await fetch("http://127.0.0.1:5000/api/start_calibration");
+  useEffect(() => {
+
+  const storedUser = localStorage.getItem("user");
+
+  if (storedUser) {
+    setUser(JSON.parse(storedUser));
+  }
+
+}, []);
+
+const start = async () => {
+
+  try {
+
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    console.log(user);
+
+    if (!user) {
+    alert("Please login first");
+    return;
+  }
+
+    const res = await fetch(
+      "http://127.0.0.1:5000/api/start_calibration",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          user_id: user.user_id
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    console.log(data);
+
     setRunning(true);
     setResult(null);
-  };
+
+  } catch (err) {
+
+    console.error(err);
+  }
+};
 
   useEffect(() => {
 

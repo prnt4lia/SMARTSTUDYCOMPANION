@@ -7,9 +7,14 @@ export default function FatiguePage() {
   const [popupData, setPopupData] = useState(null);
   const [lastAlert, setLastAlert] = useState(null);
   const [detecting, setDetecting] = useState(false);
- 
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
 
   if (!detecting) return;
 
@@ -53,12 +58,23 @@ export default function FatiguePage() {
   };
 
   const startDetection = async () => {
-    await fetch("http://127.0.0.1:5000/api/start_detection");
+    await fetch("http://127.0.0.1:5000/api/start_detection",{
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"      },
+      body: JSON.stringify({ user_id: user.user_id })    
+    });
     setDetecting(true);
   };
 
   const stopDetection = async () => {
-    await fetch("http://127.0.0.1:5000/api/stop_detection");
+    await fetch("http://127.0.0.1:5000/api/stop_detection",{
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ user_id: user.user_id })
+    });
     setDetecting(false);
   };
 

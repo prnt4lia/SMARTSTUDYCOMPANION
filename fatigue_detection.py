@@ -71,6 +71,7 @@ class FatigueDetector:
     def process_frame(self, frame, detect_fatigue=True):
         frame = imutils.resize(frame, width=450)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        warning_message = None
 
         fatigue_type = None
         severity = None
@@ -81,6 +82,43 @@ class FatigueDetector:
         mar_avg = mar
 
         faces = self.detector(gray)
+
+        # MULTIPLE FACE CHECK
+        if len(faces) > 1:
+            warning_message = "Only one face allowed"
+
+            cv2.putText(
+                frame,
+                warning_message,
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (0, 0, 255),
+                2
+            )
+
+            return frame, None, None, ear, mar, warning_message
+
+        #NO FACE CHECK
+        if len(faces) == 0:
+            warning_message = "No face detected"
+
+            self.eye_counter = 0
+            self.yawn_counter = 0
+
+            cv2.putText(
+                frame,
+                warning_message,
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (0, 0, 255),
+                2
+            )
+
+            return frame, None, None, ear, mar, warning_message
+        
+        
 
         for face in faces:
             shape = self.predictor(gray, face)
@@ -93,6 +131,11 @@ class FatigueDetector:
             ear = (self.eye_aspect_ratio(leftEye) +
                    self.eye_aspect_ratio(rightEye)) / 2.0
             mar = self.mouth_aspect_ratio(mouth)
+
+            if ear < 0.12:
+                warning_message = "Please keep eyes visible"
+
+           
 
             #use for debugging
             # print(f"EAR: {ear:.3f} | MAR: {mar:.3f}")
@@ -114,6 +157,7 @@ class FatigueDetector:
             cv2.drawContours(frame, [cv2.convexHull(leftEye)], -1, (0, 255, 0), 1)
             cv2.drawContours(frame, [cv2.convexHull(rightEye)], -1, (0, 255, 0), 1)
             cv2.drawContours(frame, [cv2.convexHull(mouth)], -1, (255, 0, 0), 1)
+        
 
         if detect_fatigue:
             # ---------- EYE FATIGUE ----------
@@ -148,4 +192,15 @@ class FatigueDetector:
             else:
                 self.yawn_counter = max(0, self.yawn_counter - 1)
 
-        return frame, fatigue_type, severity, ear, mar
+        if warning_message:
+            cv2.putText(
+                frame,
+                warning_message,
+                (20, 80),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 0, 255),
+                2
+            )
+
+        return frame, fatigue_type, severity, ear, mar, warning_message

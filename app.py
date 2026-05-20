@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import cv2
-from cv2 import data
 from flask import Flask, Response, json, jsonify, render_template, redirect, request
 from flask_cors import CORS
 from adaptive_recommender import AdaptiveRecommender
@@ -54,27 +53,7 @@ def end_session(session_id):
     conn.close()
 
 
-def start_session():
-    import sqlite3
 
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-
-    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    cursor.execute(
-        """
-        INSERT INTO study_sessions (start_time)
-        VALUES (?)
-        """,
-        (start_time,),
-    )
-
-    conn.commit()
-    session_id = cursor.lastrowid
-    conn.close()
-
-    return session_id
 
 def save_fatigue_event(session_id, user_id, fatigue, severity):
 
@@ -120,6 +99,7 @@ cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 fatigue_data = {
     "fatigue": None,
     "severity": None,
+    "warning": None,
 }
 
 
@@ -144,10 +124,10 @@ def generate_frames():
         mar = 0
 
         if calibrating:
-            frame, fatigue, severity, ear, mar = detector.process_frame(frame, detect_fatigue=False)
+            frame, fatigue, severity, ear, mar, warning = detector.process_frame(frame, detect_fatigue=False)
 
         elif detection_running:
-            frame, fatigue, severity, ear, mar = detector.process_frame(frame, detect_fatigue=True)
+            frame, fatigue, severity, ear, mar ,warning = detector.process_frame(frame, detect_fatigue=True)
 
         # Idle mode
         else:
@@ -155,10 +135,16 @@ def generate_frames():
             severity = None
             ear = 0
             mar = 0
+            warning = None
 
         if calibrating and calibration_start_time is not None:
-            ear_list.append(ear)
-            mar_list.append(mar)
+
+            if warning is None:
+                ear_list.append(ear)
+                mar_list.append(mar)
+
+            else:
+                print(f"⚠ Calibration paused: {warning}")
 
             elapsed = time.time() - calibration_start_time
 
@@ -225,6 +211,7 @@ def generate_frames():
         #  Use STABLE values
         fatigue_data["fatigue"] = stable_fatigue
         fatigue_data["severity"] = stable_severity
+        fatigue_data["warning"] = warning
 
 
         # SAVE
@@ -394,7 +381,7 @@ def start_calibration():
 def calibration_status():
     
     global last_calibration_result
-    last_calibration_result = None
+    #last_calibration_result = None
     
     global calibrating
 
@@ -467,6 +454,7 @@ def fatigue_status():
             "fatigue": fatigue,
             "severity": severity,
             "recommendation": recommendation,
+            "warning": fatigue_data.get("warning")
         }
     )
 

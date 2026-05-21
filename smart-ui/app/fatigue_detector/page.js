@@ -1,5 +1,14 @@
 "use client";
+
 import { useEffect, useState } from "react";
+import {
+  Brain,
+  Activity,
+  Lightbulb,
+  Play,
+  Square,
+  AlertTriangle,
+} from "lucide-react";
 
 export default function FatiguePage() {
   const [status, setStatus] = useState(null);
@@ -16,143 +25,251 @@ export default function FatiguePage() {
       setUser(JSON.parse(storedUser));
     }
 
-  if (!detecting) return;
+    if (!detecting) return;
 
-  const interval = setInterval(async () => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:5000/api/fatigue");
 
-    try {
-      const res = await fetch("http://127.0.0.1:5000/api/fatigue");
-      const data = await res.json();
+        const data = await res.json();
 
-      console.log(data);
+        setStatus(data);
 
-      setStatus(data);
-
-      if (
-        data.fatigue &&
-        data.severity &&
-        `${data.fatigue}-${data.severity}` !== lastAlert
-      ) {
-        console.log("POPUP TRIGGERED");
-
-        setPopupData(data);
-        setShowPopup(true);
-        setLastAlert(`${data.fatigue}-${data.severity}`);
+        if (
+          data.fatigue &&
+          data.severity &&
+          `${data.fatigue}-${data.severity}` !== lastAlert
+        ) {
+          setPopupData(data);
+          setShowPopup(true);
+          setLastAlert(`${data.fatigue}-${data.severity}`);
+        }
+      } catch (err) {
+        console.error(err);
       }
+    }, 1000);
 
-    } catch (err) {
-      console.error(err);
-    }
+    return () => clearInterval(interval);
+  }, [detecting, lastAlert]);
 
-  }, 1000);
+  const getStatusColor = () => {
+    if (!status?.severity) return "#a67c52";
 
-  return () => clearInterval(interval);
+    if (status.severity === "low") return "#d97706";
 
-}, [detecting, lastAlert]);
+    if (status.severity === "high") return "#dc2626";
 
-  const getColor = () => {
-    if (!status?.severity) return "#ccc";
-    if (status.severity === "low") return "#FFA500";
-    if (status.severity === "high") return "#FF4D4D"
-    return "#4CAF50";
+    return "#15803d";
   };
 
   const startDetection = async () => {
-    await fetch("http://127.0.0.1:5000/api/start_detection",{
+    await fetch("http://127.0.0.1:5000/api/start_detection", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"      },
-      body: JSON.stringify({ user_id: user.user_id })    
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_id: user.user_id }),
     });
+
     setDetecting(true);
   };
 
   const stopDetection = async () => {
-    await fetch("http://127.0.0.1:5000/api/stop_detection",{
+    await fetch("http://127.0.0.1:5000/api/stop_detection", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ user_id: user.user_id })
+      body: JSON.stringify({ user_id: user.user_id }),
     });
+
     setDetecting(false);
   };
 
-
   return (
     <>
-      <div style={styles.container}>
-        <h1 style={styles.title}>🧠 Fatigue Detection Dashboard</h1>
+      <main style={styles.page}>
+        <div style={styles.backgroundGlow1}></div>
+        <div style={styles.backgroundGlow2}></div>
 
-        <div style={styles.grid}>
+        <div style={styles.container}>
+          {/* HEADER */}
+          <div style={styles.header}>
+            <div style={styles.badge}>
+              <Brain size={14} />
+              AI Fatigue Monitoring
+            </div>
 
-          {/* 🎥 CAMERA */}
-          <div style={styles.videoCard}>
-            <h3>Live Monitoring</h3>
-            <img
-              src="http://127.0.0.1:5000/video_feed"
-              style={styles.video}
-            />
+            <h1 style={styles.title}>
+              Fatigue Detection Dashboard
+            </h1>
+
+            <p style={styles.subtitle}>
+              Real-time monitoring for healthier study sessions.
+            </p>
           </div>
 
-          {/* 📊 STATUS + RECOMMENDATION */}
-          <div style={styles.sidePanel}>
+          <div style={styles.grid}>
+            {/* CAMERA */}
+            <div style={styles.videoCard}>
+              <div style={styles.cardHeader}>
+                <h2 style={styles.cardTitle}>
+                  <Activity size={20} />
+                  Live Monitoring
+                </h2>
 
-            <div style={{...styles.statusBox, borderColor: getColor()}}>
-              <h3>Status</h3>
-              <p><b>Fatigue Type:</b> {status?.fatigue || "None"}</p>
-              <p><b>Severity:</b> {status?.severity || "Normal"}</p>
+                <div style={styles.liveBadge}>
+                  <span style={styles.liveDot}></span>
+                  LIVE
+                </div>
+              </div>
+
+              <img
+                src="http://127.0.0.1:5000/video_feed"
+                style={styles.video}
+              />
             </div>
 
-            {/*  CONTROL BUTTON */}
-            <div style={{ background: "white", padding: "20px", borderRadius: "12px",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+            {/* SIDE PANEL */}
+            <div style={styles.sidePanel}>
+              {/* STATUS */}
+              <div
+                style={{
+                  ...styles.statusCard,
+                  borderColor: getStatusColor(),
+                }}
+              >
+                <h2 style={styles.cardTitle}>
+                  <Brain size={20} />
+                  Detection Status
+                </h2>
 
-              <h3>Controls</h3>
+                <div style={styles.statusContent}>
+                  <div style={styles.statusRow}>
+                    <span>Fatigue Type</span>
 
-              {!detecting ? (
-                <button onClick={startDetection} style={styles.startBtn}>
-                  ▶ Start Detection
-                </button>
-              ) : (
-                <button onClick={stopDetection} style={styles.stopBtn}>
-                  ⏹ Stop Detection
-                </button>
-              )}
+                    <strong>
+                      {status?.fatigue || "None"}
+                    </strong>
+                  </div>
 
+                  <div style={styles.statusRow}>
+                    <span>Severity</span>
+
+                    <strong
+                      style={{
+                        color: getStatusColor(),
+                      }}
+                    >
+                      {status?.severity || "Normal"}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* CONTROLS */}
+              <div style={styles.controlCard}>
+                <h2 style={styles.cardTitle}>
+                  <Play size={20} />
+                  Controls
+                </h2>
+
+                {!detecting ? (
+                  <button
+                    onClick={startDetection}
+                    style={styles.startBtn}
+                  >
+                    <Play size={18} />
+                    Start Detection
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopDetection}
+                    style={styles.stopBtn}
+                  >
+                    <Square size={18} />
+                    Stop Detection
+                  </button>
+                )}
+              </div>
+
+              {/* RECOMMENDATION */}
+              <div style={styles.recommendCard}>
+                <h2 style={styles.cardTitle}>
+                  <Lightbulb size={20} />
+                  Smart Recommendation
+                </h2>
+
+                {status?.recommendation ? (
+                  <div style={styles.recommendContent}>
+                    <div style={styles.recommendItem}>
+                      <span>Activity</span>
+
+                      <strong>
+                        {status.recommendation.activity}
+                      </strong>
+                    </div>
+
+                    <div style={styles.recommendItem}>
+                      <span>Duration</span>
+
+                      <strong>
+                        {status.recommendation.duration}
+                      </strong>
+                    </div>
+                  </div>
+                ) : (
+                  <p style={styles.emptyText}>
+                    No recommendation yet
+                  </p>
+                )}
+              </div>
             </div>
-            
-            <div style={styles.recommendBox}>
-              <h3>💡 Smart Recommendation</h3>
-
-              {status?.recommendation ? (
-                <>
-                  <p><b>Activity:</b> {status.recommendation.activity}</p>
-                  <p><b>Duration:</b> {status.recommendation.duration}</p>
-                </>
-              ) : (
-                <p>No recommendation yet</p>
-              )}
-            </div>
-
           </div>
-
         </div>
-      </div>
+      </main>
+
+      {/* POPUP */}
       {showPopup && popupData && (
         <div style={styles.overlay}>
           <div style={styles.popup}>
-            <h2>⚠️ Fatigue Alert</h2>
+            <div style={styles.popupIcon}>
+              <AlertTriangle size={30} color="#dc2626" />
+            </div>
 
-            <p><b>Type:</b> {popupData.fatigue}</p>
-            <p><b>Severity:</b> {popupData.severity}</p>
+            <h2 style={styles.popupTitle}>
+              Fatigue Alert Detected
+            </h2>
 
-            <p style={{ marginTop: "10px" }}>
-              <b>Activity:</b> {popupData?.recommendation?.activity}
-            </p>
-            <p>
-              <b>Duration:</b> {popupData?.recommendation?.duration}
-            </p>
+            <div style={styles.popupContent}>
+              <div style={styles.popupRow}>
+                <span>Type</span>
+
+                <strong>{popupData.fatigue}</strong>
+              </div>
+
+              <div style={styles.popupRow}>
+                <span>Severity</span>
+
+                <strong>{popupData.severity}</strong>
+              </div>
+
+              <div style={styles.popupRow}>
+                <span>Recommended Activity</span>
+
+                <strong>
+                  {popupData?.recommendation?.activity}
+                </strong>
+              </div>
+
+              <div style={styles.popupRow}>
+                <span>Suggested Duration</span>
+
+                <strong>
+                  {popupData?.recommendation?.duration}
+                </strong>
+              </div>
+            </div>
 
             <div style={styles.popupButtons}>
               <button
@@ -168,10 +285,10 @@ export default function FatiguePage() {
 
               <button
                 style={styles.continueBtn}
-               onClick={() => {
-                              setShowPopup(false);
-                              setLastAlert(null);
-                              }}
+                onClick={() => {
+                  setShowPopup(false);
+                  setLastAlert(null);
+                }}
               >
                 Continue
               </button>
@@ -184,125 +301,316 @@ export default function FatiguePage() {
 }
 
 const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f8f5f0",
+    position: "relative",
+    overflow: "hidden",
+    fontFamily: "Inter, sans-serif",
+    padding: "40px 0",
+  },
+
+  backgroundGlow1: {
+    position: "absolute",
+    width: "400px",
+    height: "400px",
+    background: "#f3e8d7",
+    borderRadius: "50%",
+    filter: "blur(120px)",
+    top: "-120px",
+    left: "-120px",
+    opacity: 0.8,
+  },
+
+  backgroundGlow2: {
+    position: "absolute",
+    width: "350px",
+    height: "350px",
+    background: "#efe1cf",
+    borderRadius: "50%",
+    filter: "blur(120px)",
+    bottom: "-120px",
+    right: "-80px",
+    opacity: 0.7,
+  },
+
   container: {
-    padding: "30px",
-    fontFamily: "Segoe UI",
-    background: "#f4f7fb",
-    minHeight: "100vh"
+    width: "92%",
+    maxWidth: "1450px",
+    margin: "0 auto",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  header: {
+    marginBottom: "28px",
+  },
+
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    background: "#f7efe4",
+    color: "#8b6f47",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    fontSize: "14px",
+    fontWeight: 500,
+    marginBottom: "18px",
   },
 
   title: {
-    marginBottom: "20px"
+    fontSize: "3rem",
+    color: "#3d342b",
+    marginBottom: "10px",
+  },
+
+  subtitle: {
+    color: "#6b5b4d",
+    fontSize: "16px",
   },
 
   grid: {
-    display: "flex",
-    gap: "20px"
+    display: "grid",
+    gridTemplateColumns: "2fr 1fr",
+    gap: "24px",
   },
 
   videoCard: {
-    flex: 2,
-    background: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+    background: "rgba(255,255,255,0.75)",
+    backdropFilter: "blur(14px)",
+    borderRadius: "28px",
+    padding: "28px",
+    border: "1px solid rgba(255,255,255,0.6)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+  },
+
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "20px",
+  },
+
+  cardTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    color: "#3d342b",
+    fontSize: "20px",
+  },
+
+  liveBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    background: "#fef2f2",
+    color: "#dc2626",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    fontSize: "13px",
+    fontWeight: 600,
+  },
+
+  liveDot: {
+    width: "8px",
+    height: "8px",
+    background: "#dc2626",
+    borderRadius: "50%",
   },
 
   video: {
     width: "100%",
-    borderRadius: "10px"
+    borderRadius: "22px",
+    objectFit: "cover",
+    border: "1px solid #eadccf",
   },
 
   sidePanel: {
-    flex: 1,
     display: "flex",
     flexDirection: "column",
-    gap: "20px"
+    gap: "22px",
   },
 
-  statusBox: {
-    background: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    borderLeft: "6px solid",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+  statusCard: {
+    background: "rgba(255,255,255,0.75)",
+    backdropFilter: "blur(14px)",
+    borderRadius: "28px",
+    padding: "28px",
+    border: "2px solid",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
   },
 
-  recommendBox: {
-  background: "#ffffff",
-  padding: "20px",
-  borderRadius: "12px",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-  borderLeft: "6px solid #4CAF50"
-},
+  statusContent: {
+    marginTop: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px",
+  },
+
+  statusRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    color: "#5f5145",
+  },
+
+  controlCard: {
+    background: "rgba(255,255,255,0.75)",
+    backdropFilter: "blur(14px)",
+    borderRadius: "28px",
+    padding: "28px",
+    border: "1px solid rgba(255,255,255,0.6)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+  },
+
+  recommendCard: {
+    background: "rgba(255,255,255,0.75)",
+    backdropFilter: "blur(14px)",
+    borderRadius: "28px",
+    padding: "28px",
+    border: "1px solid rgba(255,255,255,0.6)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+  },
+
+  recommendContent: {
+    marginTop: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+
+  recommendItem: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    color: "#5f5145",
+  },
+
+  emptyText: {
+    marginTop: "18px",
+    color: "#8b6f47",
+  },
+
+  startBtn: {
+    width: "100%",
+    padding: "16px",
+    borderRadius: "18px",
+    border: "none",
+    background: "#a67c52",
+    color: "white",
+    fontSize: "16px",
+    fontWeight: 600,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    marginTop: "20px",
+    boxShadow: "0 8px 20px rgba(166,124,82,0.2)",
+  },
+
+  stopBtn: {
+    width: "100%",
+    padding: "16px",
+    borderRadius: "18px",
+    border: "none",
+    background: "#dc2626",
+    color: "white",
+    fontSize: "16px",
+    fontWeight: 600,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    marginTop: "20px",
+  },
 
   overlay: {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100%",
-  height: "100%",
-  backgroundColor: "rgba(0,0,0,0.5)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 999
-},
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.45)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+    backdropFilter: "blur(6px)",
+  },
 
   popup: {
-  background: "white",
-  padding: "30px",
-  borderRadius: "12px",
-  width: "350px",
+  width: "360px",
+  background: "rgba(255,255,255,0.92)",
+  backdropFilter: "blur(16px)",
+  borderRadius: "28px",
+  padding: "28px",
+  boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
   textAlign: "center",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+},
+
+  popupIcon: {
+    width: "70px",
+    height: "70px",
+    margin: "0 auto 20px",
+    borderRadius: "20px",
+    background: "#fef2f2",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  popupTitle: {
+    color: "#3d342b",
+    marginBottom: "25px",
+  },
+
+  popupContent: {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "12px",
+  marginTop: "20px",
+  textAlign: "left",
+},
+
+  popupRow: {
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
+  color: "#5f5145",
+  background: "#fffdf9",
+  padding: "12px",
+  borderRadius: "12px",
+  border: "1px solid #eee2d3",
+  fontSize: "14px",
 },
 
   popupButtons: {
-  display: "flex",
-  justifyContent: "space-between",
-  marginTop: "20px"
-},
+    display: "flex",
+    gap: "14px",
+    marginTop: "28px",
+  },
 
   breakBtn: {
-  backgroundColor: "#FF4D4D",
-  color: "white",
-  border: "none",
-  padding: "10px",
-  borderRadius: "8px",
-  cursor: "pointer"
-},
+    flex: 1,
+    background: "#dc2626",
+    color: "white",
+    border: "none",
+    padding: "14px",
+    borderRadius: "16px",
+    cursor: "pointer",
+    fontWeight: 600,
+  },
 
   continueBtn: {
-  backgroundColor: "#4CAF50",
-  color: "white",
-  border: "none",
-  padding: "10px",
-  borderRadius: "8px",
-  cursor: "pointer"
-},
-
-startBtn: {
-  width: "100%",
-  padding: "14px",
-  backgroundColor: "#4CAF50",
-  color: "white",
-  border: "none",
-  borderRadius: "10px",
-  cursor: "pointer",
-  fontSize: "16px",
-  fontWeight: "bold"
-},
-
-stopBtn: {
-  width: "100%",
-  padding: "14px",
-  backgroundColor: "#ff4d4d",
-  color: "white",
-  border: "none",
-  borderRadius: "10px",
-  cursor: "pointer",
-  fontSize: "16px",
-  fontWeight: "bold"
-}
+    flex: 1,
+    background: "#a67c52",
+    color: "white",
+    border: "none",
+    padding: "14px",
+    borderRadius: "16px",
+    cursor: "pointer",
+    fontWeight: 600,
+  },
 };

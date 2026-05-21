@@ -18,8 +18,6 @@ cooldown = 5  # seconds
 calibrating = False
 ear_list = []
 mar_list = []
-calibration_start_time = None
-calibration_duration = 15
 last_calibration_result = None
 detection_running = False
 calibration_max_frames = 300
@@ -87,11 +85,10 @@ def save_fatigue_event(session_id, user_id, fatigue, severity):
 #current_session_id = start_session()
 
 # Initialize detector
-detector = FatigueDetector()
+detector = None
 # Initialize recommendation engine
 recommender = RecommendationEngine()
-# Initialize adaptive recommender
-#ai_recommender = AdaptiveRecommender()
+
 # Start webcam
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
@@ -137,22 +134,20 @@ def generate_frames():
             mar = 0
             warning = None
 
-        if calibrating and calibration_start_time is not None:
+        if calibrating :
 
             if warning is None:
                 ear_list.append(ear)
                 mar_list.append(mar)
 
+                print(f"✅ Valid calibration frames: {len(ear_list)}/{calibration_max_frames}")
+
             else:
                 print(f"⚠ Calibration paused: {warning}")
 
-            elapsed = time.time() - calibration_start_time
-
-            if (
-                elapsed >= calibration_duration 
-                #(len(ear_list) >= calibration_max_frames and len(mar_list) >= calibration_max_frames) 
-                ):
-                print("✅ Calibration completed automatically")
+            
+            if len(ear_list) > calibration_max_frames:
+                print("✅ Calibration completed (max frames reached)")
 
                 calibrating = False
 
@@ -163,8 +158,6 @@ def generate_frames():
                 mar_mean = np.mean(mar_list)
                 mar_std = np.std(mar_list)
 
-               
-
                 data = {
                         "status": "completed",
                         "ear_mean": float(ear_mean),
@@ -173,22 +166,21 @@ def generate_frames():
                         "mar_std": float(mar_std)
             }
 
-                with open("data/calibration_data.json", "w") as f:
-                    json.dump(data, f)
+                
 
                 from calibration import save_calibration
                 save_calibration(current_user_id,ear_mean, ear_std, mar_mean, mar_std)
                                 
 
-                detector = FatigueDetector()
+                detector = FatigueDetector(current_user_id)
+                
 
                 # SAVE FOR FRONTEND
                 global last_calibration_result
                 last_calibration_result = data
 
                 print("✅ Calibration saved to database")
-
-       
+            
 
         # Add to buffer
         fatigue_buffer.append((fatigue, severity))
@@ -241,6 +233,25 @@ def generate_frames():
             b"--frame\r\n"
             b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
         )
+
+def has_calibration(user_id):
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT id
+    FROM calibration_data
+    WHERE user_id=?
+    ORDER BY id DESC
+    LIMIT 1
+    """, (user_id,))
+
+    result = cursor.fetchone()
+
+    conn.close()
+
+    return result is not None
 
 def start_session(user_id):
 
@@ -336,12 +347,14 @@ def login():
 
         global current_user_id
         current_user_id = user[0]
+        calibrated = has_calibration(user[0])
 
         return jsonify({
             "success": True,
             "message": "Login successful",
             "user_id": user[0],
-            "username": user[1]
+            "username": user[1],
+            "calibrated": calibrated
         })
 
     else:
@@ -358,13 +371,14 @@ def start_calibration():
     global calibrating
     global ear_list
     global mar_list
-    global calibration_start_time
+    global detector
     global current_user_id
     global last_calibration_result
 
     data = request.json
 
     current_user_id = data["user_id"]
+    detector = FatigueDetector(current_user_id, use_calibration=False)
 
     calibrating = True
 
@@ -373,7 +387,6 @@ def start_calibration():
 
     last_calibration_result = None
 
-    calibration_start_time = time.time()
 
     return {"status": "started"}
 
@@ -381,8 +394,6 @@ def start_calibration():
 def calibration_status():
     
     global last_calibration_result
-    #last_calibration_result = None
-    
     global calibrating
 
     if calibrating:
@@ -464,10 +475,12 @@ def start_detection():
     global detection_running
     global current_user_id
     global current_session_id
-
+    global detector
     data = request.json
 
     current_user_id = data["user_id"]
+   
+    detector = FatigueDetector(current_user_id, use_calibration=True)
 
     current_session_id = start_session(current_user_id)
 
@@ -483,45 +496,103 @@ def stop_detection():
 
 
 
-@app.route('/api/stats')
-def stats():
-    import sqlite3
+@app.route('/api/latest_calibration/<int:user_id>')
+def latest_calibration(user_id):
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
-    # Study duration (latest session)
     cursor.execute("""
-    SELECT duration FROM study_sessions
-    ORDER BY id DESC LIMIT 1
-    """)
-    result = cursor.fetchone()
-    duration = result[0] if result and result[0] else 0
+    SELECT ear_mean, ear_std, mar_mean, mar_std
+    FROM calibration_data
+    WHERE user_id=?
+    ORDER BY id DESC
+    LIMIT 1
+    """, (user_id,))
 
-    # Fatigue count
-    cursor.execute("SELECT COUNT(*) FROM fatigue_events")
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if result:
+        return {
+            "ear_mean": result[0],
+            "ear_std": result[1],
+            "mar_mean": result[2],
+            "mar_std": result[3]
+        }
+
+    return {}
+
+@app.route('/api/user_sessions/<int:user_id>')
+def user_sessions(user_id):
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT id, start_time, end_time, duration
+    FROM study_sessions
+    WHERE user_id=?
+    ORDER BY id DESC
+    """, (user_id,))
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    sessions = []
+
+    for row in rows:
+        sessions.append({
+            "id": row[0],
+            "start_time": row[1],
+            "end_time": row[2],
+            "duration": row[3]
+        })
+
+    return {
+        "sessions": sessions
+    }
+
+@app.route('/api/user_stats/<int:user_id>')
+def user_stats(user_id):
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM fatigue_events
+    WHERE user_id=?
+    """, (user_id,))
+
     fatigue_count = cursor.fetchone()[0]
 
-    # Fatigue type distribution
+
     cursor.execute("""
-    SELECT fatigue, COUNT(*) FROM fatigue_events
+    SELECT fatigue, COUNT(*)
+    FROM fatigue_events
+    WHERE user_id=?
     GROUP BY fatigue
-    """)
-    data = cursor.fetchall()
+    """, (user_id,))
+
+    rows = cursor.fetchall()
 
     eye = 0
     mental = 0
 
-    for row in data:
+    for row in rows:
+
         if row[0] == "eye_fatigue":
             eye = row[1]
+
         elif row[0] == "mental_fatigue":
             mental = row[1]
 
     conn.close()
 
     return {
-        "duration": duration,
         "fatigue_count": fatigue_count,
         "eye": eye,
         "mental": mental

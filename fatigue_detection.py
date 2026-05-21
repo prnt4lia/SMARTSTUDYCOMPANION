@@ -6,27 +6,53 @@ import json
 import numpy as np
 from imutils import face_utils
 from scipy.spatial import distance
+import sqlite3
 
 
 class FatigueDetector:
-    def __init__(self, calibration_file="data/calibration_data.json"):
-        # Load calibration data
-        with open(calibration_file) as f:
-            data = json.load(f)
+    def __init__(self, user_id=None, use_calibration=True):
+        # Load calibration ONLY if requested
+        if use_calibration:
+            conn = sqlite3.connect("database.db")
+            cursor = conn.cursor()
+
+            cursor.execute("""
+            SELECT ear_mean, ear_std, mar_mean, mar_std
+            FROM calibration_data
+            WHERE user_id=?
+            ORDER BY id DESC
+            LIMIT 1
+            """, (user_id,))
+
+            result = cursor.fetchone()
+            conn.close()
+        else:
+            result = None
+
+        if result:
+            ear_mean, ear_std, mar_mean, mar_std = result
+
+            print("✅ Calibration loaded from database")
+        else:
+            print("⚠ No calibration found. Using defaults")
+            ear_mean = 0.25
+            ear_std = 0.05
+            mar_mean = 0.6
+            mar_std = 0.1
 
         # Threshold parameters
         alpha = 0.5
         self.global_ear = 0.25
         self.global_mar = 0.6
 
-        self.ear_thresh = alpha * self.global_ear + (1 - alpha) * (data["ear_mean"] - 2 * data["ear_std"])
-        self.mar_thresh = alpha * self.global_mar + (1 - alpha) * (data["mar_mean"] + 2.5 * data["mar_std"])
+        self.ear_thresh = alpha * self.global_ear + (1 - alpha) * (ear_mean - 2 * ear_std)
+        self.mar_thresh = alpha * self.global_mar + (1 - alpha) * (mar_mean + 2.5 * mar_std)
 
         print("===== CALIBRATION LOADED =====")
-        print("EAR mean:", data["ear_mean"])
-        print("EAR std:", data["ear_std"])
-        print("MAR mean:", data["mar_mean"])
-        print("MAR std:", data["mar_std"])
+        print("EAR mean:", ear_mean)
+        print("EAR std:", ear_std)
+        print("MAR mean:", mar_mean)
+        print("MAR std:", mar_std)
         print("EAR Threshold:", self.ear_thresh)
         print("MAR Threshold:", self.mar_thresh)
         print("==============================")

@@ -1,5 +1,4 @@
 import cv2
-#from cv2 import data
 import dlib
 import imutils
 import json
@@ -113,15 +112,7 @@ class FatigueDetector:
         if len(faces) > 1:
             warning_message = "Only one face allowed"
 
-            cv2.putText(
-                frame,
-                warning_message,
-                (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (0, 0, 255),
-                2
-            )
+        
 
             return frame, None, None, ear, mar, warning_message
 
@@ -132,15 +123,7 @@ class FatigueDetector:
             self.eye_counter = 0
             self.yawn_counter = 0
 
-            cv2.putText(
-                frame,
-                warning_message,
-                (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (0, 0, 255),
-                2
-            )
+         
 
             return frame, None, None, ear, mar, warning_message
         
@@ -179,10 +162,11 @@ class FatigueDetector:
             ear_avg = sum(self.ear_history) / len(self.ear_history)
             mar_avg = sum(self.mar_history) / len(self.mar_history)
 
-            # Draw contours (optional UI overlay)
-            cv2.drawContours(frame, [cv2.convexHull(leftEye)], -1, (0, 255, 0), 1)
-            cv2.drawContours(frame, [cv2.convexHull(rightEye)], -1, (0, 255, 0), 1)
-            cv2.drawContours(frame, [cv2.convexHull(mouth)], -1, (255, 0, 0), 1)
+            if not detect_fatigue:
+                # Draw contours (optional UI overlay)
+                cv2.drawContours(frame, [cv2.convexHull(leftEye)], -1, (0, 255, 0), 1)
+                cv2.drawContours(frame, [cv2.convexHull(rightEye)], -1, (0, 255, 0), 1)
+                cv2.drawContours(frame, [cv2.convexHull(mouth)], -1, (255, 0, 0), 1)
         
 
         if detect_fatigue:

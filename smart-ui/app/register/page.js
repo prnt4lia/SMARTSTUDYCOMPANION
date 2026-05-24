@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Brain, Sparkles } from "lucide-react";
 
+
 export default function RegisterPage() {
   const router = useRouter();
 
@@ -12,6 +13,7 @@ export default function RegisterPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  
 
   const handleRegister = async (e) => {
     e.preventDefault();

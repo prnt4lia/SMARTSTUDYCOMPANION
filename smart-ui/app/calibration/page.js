@@ -1,321 +1,519 @@
 "use client";
-import { useState,useEffect } from "react";
+
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Brain,
+  Camera,
+  Play,
+  RotateCcw,
+  CheckCircle2,
+  Activity,
+  Target,
+} from "lucide-react";
 
 export default function Calibration() {
-
   const [user, setUser] = useState(null);
+
   const router = useRouter();
+
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
   const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
+    const storedUser = localStorage.getItem("user");
 
-  const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
-  if (storedUser) {
-    setUser(JSON.parse(storedUser));
-  }
-
-}, []);
-
-const start = async () => {
-
-  try {
-
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    console.log(user);
-
-    if (!user) {
-    alert("Please login first");
-    return;
-  }
-
-    const res = await fetch(
-      "http://127.0.0.1:5000/api/start_calibration",
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          user_id: user.user_id
-        }),
-      }
-    );
-
-    const data = await res.json();
-
-    console.log(data);
-
-    setRunning(true);
-    setResult(null);
-
-  } catch (err) {
-
-    console.error(err);
-  }
-};
-
-  useEffect(() => {
-
-  if (!running) return;
-
-  const interval = setInterval(async () => {
-
+  const start = async () => {
     try {
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      if (!user) {
+        alert("Please login first");
+        return;
+      }
 
       const res = await fetch(
-        "http://127.0.0.1:5000/api/calibration_result"
+        "http://127.0.0.1:5000/api/start_calibration",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            user_id: user.user_id,
+          }),
+        }
       );
 
-      const data = await res.json();
+      await res.json();
 
-      if (data.status === "completed") {
+      setRunning(true);
 
-        setResult(data);
-
-        setRunning(false);
-
-        setCompleted(true);
-
-        clearInterval(interval);
-      }
-
+      setResult(null);
     } catch (err) {
       console.error(err);
     }
+  };
 
-  }, 1000);
+  useEffect(() => {
+    if (!running) return;
 
-  return () => clearInterval(interval);
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          "http://127.0.0.1:5000/api/calibration_result"
+        );
 
-}, [running]);
+        const data = await res.json();
 
-  //const stop = async () => {
-    //const res = await fetch("http://127.0.0.1:5000/api/stop_calibration");
-    //const data = await res.json();
-    //setResult(data);
-    //setRunning(false);
-  //};
+        if (data.status === "completed") {
+          setResult(data);
+
+          setRunning(false);
+
+          setCompleted(true);
+
+          clearInterval(interval);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [running]);
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>🎯 Calibration Dashboard</h1>
+    <main style={styles.page}>
+      <div style={styles.backgroundGlow1}></div>
+      <div style={styles.backgroundGlow2}></div>
 
-      <div style={styles.grid}>
+      <div style={styles.container}>
+        {/* HEADER */}
+        <div style={styles.header}>
+          <div style={styles.badge}>
+            <Brain size={14} />
+            AI Calibration System
+          </div>
 
-        {/* 🎥 LEFT: VIDEO */}
-        <div style={styles.videoCard}>
-          <h3>Live Camera</h3>
-          <img
-            src="http://127.0.0.1:5000/video_feed"
-            style={styles.video}
-          />
+          <h1 style={styles.title}>
+            Calibration Dashboard
+          </h1>
+
+          <p style={styles.subtitle}>
+            Personalize your fatigue detection accuracy.
+          </p>
         </div>
 
-        {/* 🧠 RIGHT: CONTROLS */}
-        <div style={styles.controlCard}>
-          <h3>Controls</h3>
-            <div style={styles.instructionBox}>
-                <h4 style={{ marginTop: 0 }}>📌 Calibration Instructions</h4>
+        <div style={styles.grid}>
+          {/* CAMERA */}
+          <div style={styles.videoCard}>
+            <div style={styles.cardHeader}>
+              <h2 style={styles.cardTitle}>
+                <Camera size={20} />
+                Live Camera Feed
+              </h2>
 
-                <ul style={styles.instructions}>
+              <div style={styles.liveBadge}>
+                <span style={styles.liveDot}></span>
+                LIVE
+              </div>
+            </div>
+
+            <img
+              src="http://127.0.0.1:5000/video_feed"
+              style={styles.video}
+            />
+          </div>
+
+          {/* CONTROL PANEL */}
+          <div style={styles.controlCard}>
+            <h2 style={styles.cardTitle}>
+              <Target size={20} />
+              Calibration Controls
+            </h2>
+
+            {/* INSTRUCTIONS */}
+            <div style={styles.instructionBox}>
+              <h3 style={styles.instructionTitle}>
+                📌 Instructions
+              </h3>
+
+              <ul style={styles.instructions}>
                 <li>Keep your head straight</li>
                 <li>Blink naturally a few times</li>
                 <li>Keep your mouth relaxed</li>
                 <li>Avoid opening mouth widely</li>
-                <li>Stay within camera frame</li>
-                </ul>
+                <li>Stay within the camera frame</li>
+              </ul>
             </div>
 
-          {!running && !completed && (
-          <button onClick={start} style={styles.startBtn}>▶ Start Calibration
-        </button>
-    )}
+            {/* BUTTONS */}
+            {!running && !completed && (
+              <button onClick={start} style={styles.startBtn}>
+                <Play size={18} />
+                Start Calibration
+              </button>
+            )}
 
-          {running && (
-          <div style={styles.runningBox}>⏳ Calibration in progress...
-        </div>
-    )}
-
-          {completed && (
-        <>
-          <div style={styles.successBox}>✅ Calibration Successful
-        </div>
-
-    <button
-      style={styles.recalibrateBtn}
-      onClick={() => {
-        setCompleted(false);
-        setResult(null);
-        start();
-      }}
-    >
-      ↻ Recalibrate
-    </button>
-
-    <button
-      style={styles.detectorBtn}
-      onClick={() => router.push("/fatigue_detector")}
-    >
-      ▶ Start Fatigue Detector
-    </button>
-  </>
-)}
-          <hr style={{ margin: "20px 0" }} />
-
-          <h3>Results</h3>
-
-          {result ? (
-            <>
-              <div style={styles.resultBox}>
-                <p><b>EAR Mean:</b> {result.ear_mean.toFixed(4)}</p>
-                <p><b>EAR Std:</b> {result.ear_std.toFixed(4)}</p>
-                <p><b>MAR Mean:</b> {result.mar_mean.toFixed(4)}</p>
-                <p><b>MAR Std:</b> {result.mar_std.toFixed(4)}</p>
+            {running && (
+              <div style={styles.runningBox}>
+                ⏳ Calibration in progress...
               </div>
+            )}
 
-              
-            </>
-          ) : (
-            <p style={{ color: "#888" }}>No data yet</p>
-          )}
+            {completed && (
+              <>
+                <div style={styles.successBox}>
+                  <CheckCircle2 size={18} />
+                  Calibration Successful
+                </div>
+
+                <button
+                  style={styles.recalibrateBtn}
+                  onClick={() => {
+                    setCompleted(false);
+
+                    setResult(null);
+
+                    start();
+                  }}
+                >
+                  <RotateCcw size={18} />
+                  Recalibrate
+                </button>
+
+                <button
+                  style={styles.detectorBtn}
+                  onClick={() =>
+                    router.push("/fatigue_detector")
+                  }
+                >
+                  <Activity size={18} />
+                  Start Fatigue Detector
+                </button>
+              </>
+            )}
+
+            {/* RESULTS */}
+            <div style={styles.resultsSection}>
+              <h2 style={styles.cardTitle}>
+                <Brain size={20} />
+                Calibration Results
+              </h2>
+
+              {result ? (
+                <div style={styles.resultGrid}>
+                  <div style={styles.resultCard}>
+                    <span>EAR Mean</span>
+
+                    <h3>
+                      {result.ear_mean.toFixed(4)}
+                    </h3>
+                  </div>
+
+                  <div style={styles.resultCard}>
+                    <span>EAR Std</span>
+
+                    <h3>
+                      {result.ear_std.toFixed(4)}
+                    </h3>
+                  </div>
+
+                  <div style={styles.resultCard}>
+                    <span>MAR Mean</span>
+
+                    <h3>
+                      {result.mar_mean.toFixed(4)}
+                    </h3>
+                  </div>
+
+                  <div style={styles.resultCard}>
+                    <span>MAR Std</span>
+
+                    <h3>
+                      {result.mar_std.toFixed(4)}
+                    </h3>
+                  </div>
+                </div>
+              ) : (
+                <p style={styles.emptyText}>
+                  No calibration data yet
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-
       </div>
-    </div>
+    </main>
   );
 }
 
 const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f8f5f0",
+    position: "relative",
+    overflow: "hidden",
+    fontFamily: "Inter, sans-serif",
+    padding: "40px 0",
+  },
+
+  backgroundGlow1: {
+    position: "absolute",
+    width: "400px",
+    height: "400px",
+    background: "#f3e8d7",
+    borderRadius: "50%",
+    filter: "blur(120px)",
+    top: "-120px",
+    left: "-120px",
+    opacity: 0.8,
+  },
+
+  backgroundGlow2: {
+    position: "absolute",
+    width: "350px",
+    height: "350px",
+    background: "#efe1cf",
+    borderRadius: "50%",
+    filter: "blur(120px)",
+    bottom: "-120px",
+    right: "-80px",
+    opacity: 0.7,
+  },
+
   container: {
-    padding: "30px",
-    fontFamily: "Segoe UI, sans-serif",
-    backgroundColor: "#f5f7fb",
-    minHeight: "100vh"
+    width: "92%",
+    maxWidth: "1450px",
+    margin: "0 auto",
+    position: "relative",
+    zIndex: 2,
+  },
+
+  header: {
+    marginBottom: "28px",
+  },
+
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    background: "#f7efe4",
+    color: "#8b6f47",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    fontSize: "14px",
+    fontWeight: 500,
+    marginBottom: "18px",
   },
 
   title: {
-    marginBottom: "20px"
+    fontSize: "3rem",
+    color: "#3d342b",
+    marginBottom: "10px",
+  },
+
+  subtitle: {
+    color: "#6b5b4d",
+    fontSize: "16px",
   },
 
   grid: {
-    display: "flex",
-    gap: "20px"
+    display: "grid",
+    gridTemplateColumns: "2fr 1fr",
+    gap: "24px",
   },
 
   videoCard: {
-    flex: 2,
-    background: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
+    background: "rgba(255,255,255,0.75)",
+    backdropFilter: "blur(14px)",
+    borderRadius: "28px",
+    padding: "28px",
+    border: "1px solid rgba(255,255,255,0.6)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+    height: "fit-content",
+  },
+
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "20px",
+  },
+
+  cardTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    color: "#3d342b",
+    fontSize: "20px",
+  },
+
+  liveBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    background: "#fef2f2",
+    color: "#dc2626",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    fontSize: "13px",
+    fontWeight: 600,
+  },
+
+  liveDot: {
+    width: "8px",
+    height: "8px",
+    background: "#dc2626",
+    borderRadius: "50%",
   },
 
   video: {
     width: "100%",
-    borderRadius: "10px"
+    borderRadius: "22px",
+    border: "1px solid #eadccf",
   },
 
   controlCard: {
-    flex: 1,
-    background: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
+    background: "rgba(255,255,255,0.75)",
+    backdropFilter: "blur(14px)",
+    borderRadius: "28px",
+    padding: "28px",
+    border: "1px solid rgba(255,255,255,0.6)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "22px",
+  },
+
+  instructionBox: {
+    background: "#fffdf9",
+    border: "1px solid #eee2d3",
+    padding: "22px",
+    borderRadius: "22px",
+  },
+
+  instructionTitle: {
+    marginTop: 0,
+    marginBottom: "14px",
+    color: "#5f5145",
+  },
+
+  instructions: {
+    paddingLeft: "18px",
+    lineHeight: "2",
+    color: "#6b5b4d",
+    fontSize: "14px",
+    margin: 0,
   },
 
   startBtn: {
     width: "100%",
-    padding: "12px",
-    backgroundColor: "#4CAF50",
+    padding: "16px",
+    background: "#a67c52",
     color: "white",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "18px",
     cursor: "pointer",
-    fontSize: "16px"
+    fontSize: "16px",
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    boxShadow: "0 8px 20px rgba(166,124,82,0.2)",
   },
 
-  stopBtn: {
+  runningBox: {
+    padding: "18px",
+    background: "#fff7ed",
+    borderRadius: "18px",
+    textAlign: "center",
+    fontWeight: 600,
+    color: "#c2410c",
+    border: "1px solid #fed7aa",
+  },
+
+  successBox: {
+    padding: "18px",
+    background: "#ecfdf5",
+    color: "#15803d",
+    borderRadius: "18px",
+    textAlign: "center",
+    fontWeight: 600,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "8px",
+    border: "1px solid #bbf7d0",
+  },
+
+  recalibrateBtn: {
     width: "100%",
-    padding: "12px",
-    backgroundColor: "#ff4d4d",
+    padding: "16px",
+    background: "#d97706",
     color: "white",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "18px",
     cursor: "pointer",
-    fontSize: "16px"
-  },
-
-  resultBox: {
-    background: "#f1f3f6",
-    padding: "15px",
-    borderRadius: "8px"
+    fontSize: "16px",
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
   },
 
   detectorBtn: {
-  width: "100%",
-  padding: "14px",
-  marginTop: "15px",
-  backgroundColor: "#2563eb",
-  color: "white",
-  border: "none",
-  borderRadius: "10px",
-  cursor: "pointer",
-  fontSize: "16px",
-  fontWeight: "bold"
-},
+    width: "100%",
+    padding: "16px",
+    background: "#a67c52",
+    color: "white",
+    border: "none",
+    borderRadius: "18px",
+    cursor: "pointer",
+    fontSize: "16px",
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    boxShadow: "0 8px 20px rgba(166,124,82,0.2)",
+  },
 
-runningBox: {
-  padding: "15px",
-  background: "#fff7e6",
-  borderRadius: "10px",
-  marginTop: "10px",
-  textAlign: "center",
-  fontWeight: "bold"
-},
+  resultsSection: {
+    marginTop: "10px",
+  },
 
-successBox: {
-  padding: "15px",
-  background: "#e8f5e9",
-  color: "#2e7d32",
-  borderRadius: "10px",
-  marginTop: "10px",
-  textAlign: "center",
-  fontWeight: "bold"
-},
+  resultGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "14px",
+    marginTop: "18px",
+  },
 
-recalibrateBtn: {
-  width: "100%",
-  padding: "14px",
-  marginTop: "15px",
-  backgroundColor: "#f59e0b",
-  color: "white",
-  border: "none",
-  borderRadius: "10px",
-  cursor: "pointer",
-  fontSize: "16px",
-  fontWeight: "bold"
-},
+  resultCard: {
+    background: "#fffdf9",
+    border: "1px solid #eee2d3",
+    padding: "18px",
+    borderRadius: "18px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    color: "#5f5145",
+  },
 
-instructionBox: {
-  background: "#eef4ff",
-  padding: "15px",
-  borderRadius: "10px",
-  marginBottom: "20px",
-  border: "1px solid #c7dbff"
-},
-
-instructions: {
-  paddingLeft: "20px",
-  lineHeight: "1.8",
-  color: "#333",
-  fontSize: "14px"
-}
-
+  emptyText: {
+    marginTop: "18px",
+    color: "#8b6f47",
+  },
 };

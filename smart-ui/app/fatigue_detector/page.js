@@ -9,14 +9,18 @@ import {
   Square,
   AlertTriangle,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function FatiguePage() {
   const [status, setStatus] = useState(null);
+  const [warningPopup, setWarningPopup] = useState(false);
+  const [warningMessage, setWarningMessage] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [popupData, setPopupData] = useState(null);
   const [lastAlert, setLastAlert] = useState(null);
   const [detecting, setDetecting] = useState(false);
   const [user, setUser] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -34,6 +38,15 @@ export default function FatiguePage() {
         const data = await res.json();
 
         setStatus(data);
+
+        if (data.warning) {
+          setWarningMessage(data.warning);
+          setWarningPopup(true);
+
+        } else {
+
+          setWarningPopup(false);
+        }
 
         if (
           data.fatigue &&
@@ -107,6 +120,13 @@ export default function FatiguePage() {
             <p style={styles.subtitle}>
               Real-time monitoring for healthier study sessions.
             </p>
+
+            <button
+              style={styles.backBtn}
+              onClick={() => router.push("/dashboard")}
+            >
+              ← Back to Dashboard
+            </button>
           </div>
 
           <div style={styles.grid}>
@@ -295,6 +315,20 @@ export default function FatiguePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* WARNING POPUP */}
+      {warningPopup && (
+      <div style={styles.warningToast}>
+      <div style={styles.warningHeader}>
+      <AlertTriangle size={18} />
+      Warning
+      </div>
+        <p style={styles.warningText}>{warningMessage}
+        </p>
+
+        </div>
+
       )}
     </>
   );
@@ -613,4 +647,50 @@ const styles = {
     cursor: "pointer",
     fontWeight: 600,
   },
+
+  backBtn: {
+    marginTop: "20px",
+    padding: "14px 22px",
+    borderRadius: "16px",
+    border: "1px solid #e7d8c7",
+    background: "rgba(255,255,255,0.75)",
+    backdropFilter: "blur(14px)",
+    color: "#7c5f3f",
+    fontWeight: 600,
+    fontSize: "15px",
+    cursor: "pointer",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
+  },
+
+  warningToast: {
+  position: "fixed",
+  top: "30px",
+  right: "30px",
+  width: "320px",
+  background: "rgba(255,255,255,0.95)",
+  backdropFilter: "blur(18px)",
+  border: "1px solid #fecaca",
+  borderLeft: "6px solid #dc2626",
+  borderRadius: "20px",
+  padding: "18px 20px",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+  zIndex: 9999,
+  animation: "slideIn 0.3s ease",
+},
+
+warningHeader: {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  color: "#dc2626",
+  fontWeight: 700,
+  marginBottom: "10px",
+  fontSize: "15px",
+},
+
+warningText: {
+  color: "#5f5145",
+  fontSize: "14px",
+  lineHeight: 1.5,
+},
 };

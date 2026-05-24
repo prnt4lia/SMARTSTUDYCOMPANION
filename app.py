@@ -283,12 +283,29 @@ def start_session(user_id):
 
 @app.route("/api/register", methods=["POST"])
 def register():
+    import re
+    from werkzeug.security import generate_password_hash
+
 
     data = request.json
 
     username = data.get("username")
     password = data.get("password")
 
+    # Password policy
+    password_pattern = re.compile(
+        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$'
+    )
+
+    if not password_pattern.match(password):
+
+        return jsonify({
+            "success": False,
+            "message": "Password must contain at least 8 characters, uppercase, lowercase, number and special character"
+        })
+
+    # HASH PASSWORD
+    hashed_password = generate_password_hash(password)
     if not username or not password:
         return jsonify({
             "success": False,
@@ -303,7 +320,7 @@ def register():
         cursor.execute("""
         INSERT INTO users (username, password)
         VALUES (?, ?)
-        """, (username, password))
+        """, (username, hashed_password))
 
         conn.commit()
 
@@ -326,6 +343,8 @@ def register():
 @app.route("/api/login", methods=["POST"])
 def login():
 
+    from werkzeug.security import check_password_hash
+
     data = request.json
 
     username = data.get("username")
@@ -336,8 +355,8 @@ def login():
 
     cursor.execute("""
     SELECT * FROM users
-    WHERE username=? AND password=?
-    """, (username, password))
+    WHERE username=?
+    """, (username,))
 
     user = cursor.fetchone()
 
@@ -345,9 +364,13 @@ def login():
 
     if user:
 
-        global current_user_id
-        current_user_id = user[0]
-        calibrated = has_calibration(user[0])
+        stored_password = user[2]
+        if check_password_hash(stored_password, password):
+           
+
+            global current_user_id
+            current_user_id = user[0]
+            calibrated = has_calibration(user[0])
 
         return jsonify({
             "success": True,

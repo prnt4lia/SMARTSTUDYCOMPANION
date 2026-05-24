@@ -13,9 +13,27 @@ export default function RegisterPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
+  const [showPassword, setShowPassword] = useState(false);
+
+  const validatePassword = (password) => {
+
+  const regex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+    return regex.test(password);
+  };
 
   const handleRegister = async (e) => {
+
+     if (!validatePassword(password)) {
+
+    setMessage(
+      "Password must contain at least 8 characters, uppercase, lowercase, number and special character."
+    );
+
+    return;
+  }
+
     e.preventDefault();
 
     setLoading(true);
@@ -86,13 +104,21 @@ export default function RegisterPage() {
           />
 
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={styles.input}
             required
           />
+          <label style={styles.checkboxLabel}>
+            <input
+                type="checkbox"
+                checked={showPassword}
+                onChange={() => setShowPassword(!showPassword)}
+            />
+              Show Password
+          </label>
 
           <button type="submit" style={styles.button}>
             {loading ? "Registering..." : "Register"}
@@ -256,4 +282,14 @@ const styles = {
     cursor: "pointer",
     fontWeight: 600,
   },
+
+  checkboxLabel: {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  marginTop: "10px",
+  fontSize: "14px",
+  color: "#444"
+},
+
 };

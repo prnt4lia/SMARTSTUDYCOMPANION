@@ -11,6 +11,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -91,13 +93,22 @@ export default function LoginPage() {
           />
 
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={styles.input}
             required
           />
+
+          <label style={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              checked={showPassword}
+              onChange={() => setShowPassword(!showPassword)}
+            />
+            Show Password
+          </label>
 
           <button type="submit" style={styles.button}>
             {loading ? "Logging in..." : "Login"}
@@ -252,5 +263,14 @@ const styles = {
     color: "#a67c52",
     cursor: "pointer",
     fontWeight: 600,
+  },
+
+  checkboxLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginTop: "10px",
+    fontSize: "14px",
+    color: "#444"
   },
 };

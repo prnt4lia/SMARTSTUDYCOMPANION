@@ -13,6 +13,8 @@ import {
   RefreshCw,
   User,
 } from "lucide-react";
+import FatigueTrend from "../../components/FatigueTrend";
+import Sidebar from "../../components/Sidebar";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -22,6 +24,7 @@ export default function DashboardPage() {
   const [calibration, setCalibration] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [trendData, setTrendData] = useState([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -63,6 +66,14 @@ export default function DashboardPage() {
       const sessionData = await sessionRes.json();
 
       setSessions(sessionData.sessions || []);
+
+      const trendRes = await fetch(
+        `http://127.0.0.1:5000/api/fatigue-trend/${userId}`
+      );
+
+      const trendData = await trendRes.json();
+
+setTrendData(trendData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -78,6 +89,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
+
       <div style={styles.loadingContainer}>
         <div style={styles.loadingCard}>
           <Brain size={40} color="#a67c52" />
@@ -88,7 +100,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <main style={styles.page}>
+       <div style={{ display: "flex" }}>
+       <Sidebar />
+      <main
+      style={{
+        ...styles.page,
+        marginLeft: "260px",
+        width: "100%",
+      }}
+    >
       <div style={styles.backgroundGlow1}></div>
       <div style={styles.backgroundGlow2}></div>
 
@@ -154,124 +174,25 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* STATS */}
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <Activity size={24} color="#a67c52" />
-            <h3>Total Fatigue</h3>
-            <p style={styles.statValue}>
-              {stats?.fatigue_count || 0}
-            </p>
-          </div>
 
-          <div style={styles.statCard}>
-            <Brain size={24} color="#a67c52" />
-            <h3>Eye Fatigue</h3>
-            <p style={styles.statValue}>
-              {stats?.eye || 0}
-            </p>
-          </div>
-
-          <div style={styles.statCard}>
-            <Target size={24} color="#a67c52" />
-            <h3>Mental Fatigue</h3>
-            <p style={styles.statValue}>
-              {stats?.mental || 0}
-            </p>
-          </div>
-
-          <div style={styles.statCard}>
-            <BookOpen size={24} color="#a67c52" />
-            <h3>Study Sessions</h3>
-            <p style={styles.statValue}>
-              {sessions.length}
-            </p>
-          </div>
+       
         </div>
-
-        {/* CALIBRATION */}
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            <Target size={20} />
-            Latest Calibration Data
-          </h2>
-
-          {calibration ? (
-            <div style={styles.calibrationGrid}>
-              <div style={styles.calibrationItem}>
-                <span>EAR Mean</span>
-                <h3>{calibration.ear_mean?.toFixed(4)}</h3>
-              </div>
-
-              <div style={styles.calibrationItem}>
-                <span>EAR Std</span>
-                <h3>{calibration.ear_std?.toFixed(4)}</h3>
-              </div>
-
-              <div style={styles.calibrationItem}>
-                <span>MAR Mean</span>
-                <h3>{calibration.mar_mean?.toFixed(4)}</h3>
-              </div>
-
-              <div style={styles.calibrationItem}>
-                <span>MAR Std</span>
-                <h3>{calibration.mar_std?.toFixed(4)}</h3>
-              </div>
-            </div>
-          ) : (
-            <p>No calibration data available.</p>
-          )}
-        </div>
-
-        {/* SESSIONS */}
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            <Timer size={20} />
-            Study Sessions
-          </h2>
-
-          {sessions.length === 0 ? (
-            <p>No sessions recorded yet.</p>
-          ) : (
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Session ID</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
-                    <th>Duration</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {sessions.map((session) => (
-                    <tr key={session.id}>
-                      <td>{session.id}</td>
-                      <td>{session.start_time}</td>
-                      <td>{session.end_time || "Active"}</td>
-                      <td>{session.duration || 0}s</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
     </main>
-  );
+
+  </div>
+);
 }
 
 const styles = {
   page: {
-    minHeight: "100vh",
-    background: "#f8f5f0",
-    position: "relative",
-    overflow: "hidden",
-    fontFamily: "Inter, sans-serif",
-    padding: "40px 0",
-  },
+  minHeight: "100vh",
+  background: "#f8f5f0",
+  position: "relative",
+  overflow: "hidden",
+  fontFamily: "Inter, sans-serif",
+  padding: "40px 0",
+  paddingLeft: "20px",
+},
 
   backgroundGlow1: {
     position: "absolute",

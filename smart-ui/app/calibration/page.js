@@ -112,7 +112,13 @@ export default function Calibration() {
             Personalize your fatigue detection accuracy.
           </p>
         </div>
-
+        <button
+              style={styles.backBtn}
+              onClick={() => router.push("/dashboard")}
+            >
+              ← Back to Dashboard
+            </button>
+<div style={{ height: "30px" }}></div>
         <div style={styles.grid}>
           {/* CAMERA */}
           <div style={styles.videoCard}>
@@ -515,5 +521,19 @@ const styles = {
   emptyText: {
     marginTop: "18px",
     color: "#8b6f47",
+  },
+
+   backBtn: {
+    marginTop: "20px",
+    padding: "14px 22px",
+    borderRadius: "16px",
+    border: "1px solid #e7d8c7",
+    background: "rgba(255,255,255,0.75)",
+    backdropFilter: "blur(14px)",
+    color: "#7c5f3f",
+    fontWeight: 600,
+    fontSize: "15px",
+    cursor: "pointer",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
   },
 };

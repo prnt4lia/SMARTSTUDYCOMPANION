@@ -19,6 +19,7 @@ export default function FatiguePage() {
   const [popupData, setPopupData] = useState(null);
   const [lastAlert, setLastAlert] = useState(null);
   const [detecting, setDetecting] = useState(false);
+  const [studyTime, setStudyTime] = useState(0);
   const [user, setUser] = useState(null);
   const router = useRouter();
 
@@ -84,6 +85,12 @@ export default function FatiguePage() {
       body: JSON.stringify({ user_id: user.user_id }),
     });
 
+    setStudyTime(0);
+      const interval = setInterval(() => {
+      setStudyTime(prev => prev + 1);
+    }, 1000);
+
+    window.studyTimer = interval;
     setDetecting(true);
   };
 
@@ -95,9 +102,19 @@ export default function FatiguePage() {
       },
       body: JSON.stringify({ user_id: user.user_id }),
     });
-
+     clearInterval(window.studyTimer);
     setDetecting(false);
   };
+
+  function formatTime(seconds) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    return `${hrs.toString().padStart(2,"0")}:${mins
+      .toString()
+      .padStart(2,"0")}:${secs.toString().padStart(2,"0")}`;
+    }
 
   return (
     <>
@@ -152,6 +169,16 @@ export default function FatiguePage() {
 
             {/* SIDE PANEL */}
             <div style={styles.sidePanel}>
+              {/* STUDY TIMER */}
+              <div style={styles.studyTimer}>
+              <div style={styles.timerIcon}>⏱️</div>
+              <div style={styles.timerLabel}>
+              Study Time
+              </div>
+              <div style={styles.timerValue}>
+              {formatTime(studyTime)}
+            </div>
+          </div>
               {/* STATUS */}
               <div
                 style={{
@@ -212,6 +239,7 @@ export default function FatiguePage() {
                   </button>
                 )}
               </div>
+              
 
               {/* RECOMMENDATION */}
               <div style={styles.recommendCard}>
@@ -692,5 +720,42 @@ warningText: {
   color: "#5f5145",
   fontSize: "14px",
   lineHeight: 1.5,
+},
+
+studyTimer: {
+  background: "rgba(255,255,255,0.75)",
+  backdropFilter: "blur(14px)",
+  borderRadius: "24px",
+  padding: "22px",
+  border: "1px solid rgba(255,255,255,0.6)",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+
+  marginBottom: "22px",
+},
+
+timerLabel: {
+  color: "#8b6f47",
+  fontSize: "13px",
+  fontWeight: 600,
+  textTransform: "uppercase",
+  letterSpacing: "1px",
+  marginBottom: "8px",
+},
+
+timerValue: {
+  color: "#3d342b",
+  fontSize: "2rem",
+  fontWeight: 700,
+  fontFamily: "monospace",
+},
+
+timerIcon: {
+  fontSize: "28px",
+  marginBottom: "10px",
 },
 };

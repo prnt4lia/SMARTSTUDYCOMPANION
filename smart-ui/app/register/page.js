@@ -25,16 +25,17 @@ export default function RegisterPage() {
 
   const handleRegister = async (e) => {
 
+    e.preventDefault();
+
      if (!validatePassword(password)) {
 
-    setMessage(
+    setError(
       "Password must contain at least 8 characters, uppercase, lowercase, number and special character."
     );
 
     return;
   }
 
-    e.preventDefault();
 
     setLoading(true);
     setError("");

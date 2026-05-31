@@ -621,6 +621,87 @@ def user_stats(user_id):
         "mental": mental
     }
 
+@app.route("/api/fatigue-trend/<int:user_id>")
+def fatigue_trend(user_id):
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT
+    DATE(timestamp) as day,
+    COUNT(*) as fatigue_count
+    FROM fatigue_events
+    WHERE user_id = ?
+    GROUP BY DATE(timestamp)
+    ORDER BY day;
+    """, (user_id,))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    data = []
+
+    for row in rows:
+        data.append({
+            "day": row[0],
+            "fatigue_count": row[1]
+        })
+
+    return jsonify(data)
+
+@app.route("/api/fatigue_time_distribution/<int:user_id>")
+def fatigue_time_distribution(user_id):
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT timestamp
+        FROM fatigue_events
+        WHERE user_id = ?
+    """, (user_id,))
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    buckets = {
+        "8-10am": 0,
+        "10-12pm": 0,
+        "12-2pm": 0,
+        "2-4pm": 0,
+        "4-6pm": 0,
+        "6-8pm": 0
+    }
+
+    for row in rows:
+
+        hour = int(row[0][11:13])
+
+        if 8 <= hour < 10:
+            buckets["8-10am"] += 1
+
+        elif 10 <= hour < 12:
+            buckets["10-12pm"] += 1
+
+        elif 12 <= hour < 14:
+            buckets["12-2pm"] += 1
+
+        elif 14 <= hour < 16:
+            buckets["2-4pm"] += 1
+
+        elif 16 <= hour < 18:
+            buckets["4-6pm"] += 1
+
+        elif 18 <= hour < 20:
+            buckets["6-8pm"] += 1
+
+    return jsonify([
+        {"time": k, "count": v}
+        for k, v in buckets.items()
+    ])
+
 if __name__ == "__main__":
     try:
         app.run(debug=True, use_reloader=False)

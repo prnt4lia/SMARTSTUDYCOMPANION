@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef} from "react";
 import {
   Brain,
   Activity,
@@ -21,9 +21,16 @@ export default function FatiguePage() {
   const [detecting, setDetecting] = useState(false);
   const [studyTime, setStudyTime] = useState(0);
   const [user, setUser] = useState(null);
+  const alertSound = useRef(null);
+  const [alertPlayed, setAlertPlayed] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+  alertSound.current = new Audio("/alert.mp3");
+  }, []);
+
+  useEffect(() => {
+    
     const storedUser = localStorage.getItem("user");
 
     if (storedUser) {
@@ -54,6 +61,10 @@ export default function FatiguePage() {
           data.severity &&
           `${data.fatigue}-${data.severity}` !== lastAlert
         ) {
+          
+          console.log("PLAYING SOUND");
+
+          alertSound.current?.play();
           setPopupData(data);
           setShowPopup(true);
           setLastAlert(`${data.fatigue}-${data.severity}`);

@@ -1,115 +1,97 @@
 "use client";
 
+import React from "react";
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, Brain, Sparkles } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
 
-  return (
-    <main style={styles.page}>
-      <div style={styles.backgroundGlow1}></div>
-      <div style={styles.backgroundGlow2}></div>
+ return (
+  <main style={styles.page as CSSProperties}>
+    <div style={styles.overlay}></div>
 
-      <div style={styles.card}>
-        <div style={styles.iconWrapper}>
-          <Brain size={32} color="#8b6f47" />
+    
+    <div style={styles.container}>
+
+      {/* NAVBAR */}
+      <nav style={styles.navbar}>
+        <div style={styles.logo}>
+          <Brain size={28} />
+          SSC
         </div>
+      </nav>
 
-        <div style={styles.badge}>
-          <Sparkles size={14} />
-          Smart Learning Assistant
-        </div>
+      {/* HERO SECTION */}
+      <div style={styles.hero}>
 
-        <h1 style={styles.title}>
-          Smart Study <span style={styles.highlight}>Companion</span>
-        </h1>
-
-        <p style={styles.subtitle}>
-          AI-powered fatigue detection and productivity tracking for focused
-          studying.
-        </p>
-
-        <div style={styles.featureContainer}>
-          <div style={styles.feature}>
-            <BookOpen size={18} />
-            Study Tracking
+        {/* LEFT SIDE */}
+        <div style={styles.leftSection as CSSProperties}>
+          <div style={styles.badge}>
+            <Sparkles size={14} />
+            Smart Learning Assistant
           </div>
 
-          <div style={styles.feature}>
-            <Brain size={18} />
-            Fatigue Detection
+          <h1 style={styles.title}>
+            Smart Study
+            <br />
+            <span style={styles.highlight}>Companion</span>
+          </h1>
+
+          <p style={styles.subtitle}>
+            AI-powered fatigue detection and productivity tracking
+            for focused studying.
+          </p>
+
+          <div style={styles.featureContainer}>
+            <div style={styles.feature}>
+              <BookOpen size={18} />
+              Study Tracking
+            </div>
+
+            <div style={styles.feature}>
+              <Brain size={18} />
+              Fatigue Detection
+            </div>
+          </div>
+
+          <div style={styles.buttonContainer}>
+            <button
+              style={styles.loginButton}
+              onClick={() => router.push("/login")}
+            >
+              Login
+            </button>
+
+            <button
+              style={styles.registerButton}
+              onClick={() => router.push("/register")}
+            >
+             Register
+            </button>
           </div>
         </div>
 
-        <div style={styles.buttonContainer}>
-          <button
-            style={styles.loginButton}
-            onClick={() => router.push("/login")}
-          >
-            Login
-          </button>
-
-          <button
-            style={styles.registerButton}
-            onClick={() => router.push("/register")}
-          >
-            Register
-          </button>
-        </div>
       </div>
-    </main>
-  );
+    </div>
+  </main>
+);
 }
 
 const styles = {
   page: {
-    height: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "#f8f5f0",
-    overflow: "hidden",
-    position: "relative" as const,
-    fontFamily: "Inter, sans-serif",
-  },
-
-  backgroundGlow1: {
-    position: "absolute" as const,
-    width: "400px",
-    height: "400px",
-    background: "#f3e8d7",
-    borderRadius: "50%",
-    filter: "blur(120px)",
-    top: "-100px",
-    left: "-100px",
-    opacity: 0.8,
-  },
-
-  backgroundGlow2: {
-    position: "absolute" as const,
-    width: "350px",
-    height: "350px",
-    background: "#efe1cf",
-    borderRadius: "50%",
-    filter: "blur(120px)",
-    bottom: "-120px",
-    right: "-80px",
-    opacity: 0.7,
-  },
-
-  card: {
-    width: "90%",
-    maxWidth: "650px",
-    padding: "60px 40px",
-    borderRadius: "28px",
-    background: "rgba(255,255,255,0.75)",
-    backdropFilter: "blur(14px)",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.06)",
-    border: "1px solid rgba(255,255,255,0.6)",
-    textAlign: "center" as const,
-    zIndex: 2,
-  },
+  minHeight: "100vh",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundImage: "url('/card-bg.webp')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  position: "relative" as const,
+  overflow: "hidden",
+  fontFamily: "Inter, sans-serif",
+} as const,
 
   iconWrapper: {
     width: "72px",
@@ -207,4 +189,78 @@ const styles = {
     cursor: "pointer",
     transition: "0.2s ease",
   },
+
+container: {
+  width: "90%",
+  maxWidth: "1300px",
+  zIndex: 2,
+},
+
+navbar: {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "60px",
+},
+
+logo: {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  fontSize: "24px",
+  fontWeight: 700,
+  color: "#8b6f47",
+},
+
+navLinks: {
+  display: "flex",
+  gap: "40px",
+  color: "#5f5145",
+  fontWeight: 500,
+},
+
+navButton: {
+  padding: "12px 24px",
+  border: "none",
+  borderRadius: "12px",
+  background: "#a67c52",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 600,
+},
+
+hero: {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+leftSection: {
+  maxWidth: "700px",
+  textAlign: "center",
+  margin: "0 auto",
+},
+
+rightSection: {
+  flex: 1,
+  position: "relative" as const,
+  borderRadius: "24px",
+  overflow: "hidden",
+},
+
+bgImage: {
+  position: "absolute" as const,
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  objectFit: "cover" as const,
+  opacity: 0.35,
+},
+
+overlay: {
+  position: "absolute" as const,
+  inset: 0,
+  background: "rgba(255,255,255,0.55)",
+},
+
 };

@@ -123,6 +123,7 @@ export default function AnalyticsPage() {
     . Consider taking a short break before this time.
   </div>
 )}
+
         {/* CALIBRATION */}
                <div style={styles.card}>
                  <h2 style={styles.sectionTitle}>
@@ -450,7 +451,8 @@ sessionRow: {
 },
 
 insightCard: {
-  marginTop: "20px",
+  marginBottom: "30px",
+  marginTop: "10px",
   padding: "16px",
   borderRadius: "12px",
   background: "#fff8e8",

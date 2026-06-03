@@ -128,10 +128,6 @@ setTrendData(trendData);
             </p>
           </div>
 
-          <button style={styles.logoutBtn} onClick={logout}>
-            <LogOut size={18} />
-            Logout
-          </button>
         </div>
 
         {/* PROFILE CARD */}

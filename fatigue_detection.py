@@ -62,9 +62,9 @@ class FatigueDetector:
 
         # Threshold frames
         self.eye_low_frames = 30
-        self.eye_high_frames = 50
+        self.eye_high_frames = 60
         self.yawn_low_frames = 30
-        self.yawn_high_frames = 50
+        self.yawn_high_frames = 60
 
         self.ear_history = []
         self.mar_history = []

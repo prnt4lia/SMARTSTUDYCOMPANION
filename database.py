@@ -50,3 +50,47 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+from datetime import datetime
+import sqlite3
+
+def end_session(session_id):
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT start_time
+        FROM study_sessions
+        WHERE id=?
+    """, (session_id,))
+
+    row = cursor.fetchone()
+
+    if row:
+
+        start_time = datetime.strptime(
+            row[0],
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        end_time = datetime.now()
+
+        duration = int(
+            (end_time - start_time).total_seconds()
+        )
+
+        cursor.execute("""
+            UPDATE study_sessions
+            SET end_time=?, duration=?
+            WHERE id=?
+        """,
+        (
+            end_time.strftime("%Y-%m-%d %H:%M:%S"),
+            duration,
+            session_id
+        ))
+
+        conn.commit()
+
+    conn.close()

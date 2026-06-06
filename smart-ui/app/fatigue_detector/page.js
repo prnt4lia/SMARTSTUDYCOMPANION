@@ -23,6 +23,7 @@ export default function FatiguePage() {
   const [user, setUser] = useState(null);
   const alertSound = useRef(null);
   const [alertPlayed, setAlertPlayed] = useState(false);
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export default function FatiguePage() {
           data.severity &&
           `${data.fatigue}-${data.severity}` !== lastAlert
         ) {
-          
+
           console.log("PLAYING SOUND");
 
           alertSound.current?.play();
@@ -103,7 +104,7 @@ export default function FatiguePage() {
 
     window.studyTimer = interval;
     setDetecting(true);
-  };
+};
 
   const stopDetection = async () => {
     await fetch("http://127.0.0.1:5000/api/stop_detection", {
@@ -127,6 +128,21 @@ export default function FatiguePage() {
       .padStart(2,"0")}:${secs.toString().padStart(2,"0")}`;
     }
 
+let popupTitle = "";
+let popupMessage = "";
+
+    if (popupData?.fatigue === "eye_fatigue") {
+      popupTitle = "👀 Time for an Eye Break";
+
+      popupMessage = `Hi ${user?.username || "there"}! We've noticed signs of eye strain during your study session. Taking a short break now can help refresh your eyes and improve focus.`;
+    }
+
+    if (popupData?.fatigue === "mental_fatigue") {
+      popupTitle = "🧠 You Might Be Feeling Tired";
+
+      popupMessage = `Hi ${user?.username || "there"}! We've noticed signs that your concentration may be decreasing. A short break can help you recharge and stay productive.`;
+    }
+
   return (
     <>
       <main style={styles.page}>
@@ -148,6 +164,29 @@ export default function FatiguePage() {
             <p style={styles.subtitle}>
               Real-time monitoring for healthier study sessions.
             </p>
+
+            {showResumeBanner && (
+                <div style={styles.resumeBanner}>
+                  <p>
+                    🎉 Break completed successfully.
+                    Your study session is currently paused.
+                  </p>
+
+                  <button
+                    onClick={async () => {
+
+                      await fetch(
+                        "http://127.0.0.1:5000/api/resume_detection",
+                        {
+                          method: "POST"
+                        }
+                      );
+                    }}
+                  >
+                    Resume Study Session
+                  </button>
+                </div>
+              )}
 
             <button
               style={styles.backBtn}
@@ -250,39 +289,6 @@ export default function FatiguePage() {
                   </button>
                 )}
               </div>
-              
-
-              {/* RECOMMENDATION */}
-              <div style={styles.recommendCard}>
-                <h2 style={styles.cardTitle}>
-                  <Lightbulb size={20} />
-                  Smart Recommendation
-                </h2>
-
-                {status?.recommendation ? (
-                  <div style={styles.recommendContent}>
-                    <div style={styles.recommendItem}>
-                      <span>Activity</span>
-
-                      <strong>
-                        {status.recommendation.activity}
-                      </strong>
-                    </div>
-
-                    <div style={styles.recommendItem}>
-                      <span>Duration</span>
-
-                      <strong>
-                        {status.recommendation.duration}
-                      </strong>
-                    </div>
-                  </div>
-                ) : (
-                  <p style={styles.emptyText}>
-                    No recommendation yet
-                  </p>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -297,21 +303,14 @@ export default function FatiguePage() {
             </div>
 
             <h2 style={styles.popupTitle}>
-              Fatigue Alert Detected
+              {popupTitle}
             </h2>
+            <p style={styles.popupMessage}>
+              {popupMessage}
+            </p>
 
             <div style={styles.popupContent}>
-              <div style={styles.popupRow}>
-                <span>Type</span>
-
-                <strong>{popupData.fatigue}</strong>
-              </div>
-
-              <div style={styles.popupRow}>
-                <span>Severity</span>
-
-                <strong>{popupData.severity}</strong>
-              </div>
+            
 
               <div style={styles.popupRow}>
                 <span>Recommended Activity</span>
@@ -336,10 +335,14 @@ export default function FatiguePage() {
                 onClick={() => {
                   alert("⏳ Break started!");
                   setShowPopup(false);
-                  setLastAlert(null);
+
+                  router.push(
+                    `/break?fatigue=${popupData.fatigue}&severity=${popupData.severity}`
+                  );
+
                 }}
-              >
-                Take Break
+                    >
+                Start Break
               </button>
 
               <button
@@ -349,7 +352,7 @@ export default function FatiguePage() {
                   setLastAlert(null);
                 }}
               >
-                Continue
+                Continue Studying
               </button>
             </div>
           </div>
@@ -768,5 +771,26 @@ timerValue: {
 timerIcon: {
   fontSize: "28px",
   marginBottom: "10px",
+},
+
+popupMessage: {
+  color: "#6b5b4d",
+  fontSize: "15px",
+  lineHeight: 1.6,
+  marginBottom: "20px",
+  textAlign: "center",
+},
+
+resumeBanner: {
+  background: "#ecfdf5",
+  border: "1px solid #86efac",
+  borderRadius: "16px",
+  padding: "16px",
+  marginTop: "20px",
+  marginBottom: "20px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  color: "#166534",
 },
 };

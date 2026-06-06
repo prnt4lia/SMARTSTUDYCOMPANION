@@ -28,14 +28,7 @@ class RecommendationEngine:
                 "activity": "Short walk or breathing exercise",
                 "duration": "5–10 minutes"
             }
-
-        elif fatigue == "prolonged_fatigue":
-            return {
-                "rule": "R5",
-                "activity": "Take longer break / stop studying",
-                "duration": "15 minutes"
-            }
-
+        
         else:
             return {
                 "rule": None,

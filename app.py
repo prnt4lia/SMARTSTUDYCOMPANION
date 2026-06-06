@@ -3,7 +3,7 @@ from datetime import datetime
 import cv2
 from flask import Flask, Response, json, jsonify, render_template, redirect, request
 from flask_cors import CORS
-from adaptive_recommender import AdaptiveRecommender
+
 from database import init_db
 import sqlite3
 from fatigue_detection import FatigueDetector
@@ -54,6 +54,10 @@ def end_session(session_id):
 
 
 def save_fatigue_event(session_id, user_id, fatigue, severity):
+
+    if fatigue is None or severity is None:
+        return
+
 
     import sqlite3
 
@@ -214,8 +218,12 @@ def generate_frames():
         else:
             current = None
 
-        if (current != last_saved and 
-                current_time - last_trigger_time > cooldown):
+        if (
+            stable_fatigue is not None
+            and stable_severity is not None
+            and current != last_saved
+            and current_time - last_trigger_time > cooldown
+            ):
 
                 save_fatigue_event(current_session_id,
                                     current_user_id,
@@ -259,6 +267,13 @@ def start_session(user_id):
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE study_sessions
+        SET end_time=datetime('now')
+        WHERE user_id=?
+        AND end_time IS NULL
+        """, (user_id,))
 
     start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -514,8 +529,35 @@ def start_detection():
 @app.route('/api/stop_detection', methods=["POST"])
 def stop_detection():
     global detection_running
+    global current_session_id
+
     detection_running = False
+
+    if current_session_id:
+        from database import end_session
+        end_session(current_session_id)
+
     return {"status": "stopped"}
+
+@app.route("/api/pause_detection", methods=["POST"])
+def pause_detection():
+    global detection_running
+
+    detection_running = False
+
+    return jsonify({
+        "message": "Detection paused"
+    })
+
+@app.route("/api/resume_detection", methods=["POST"])
+def resume_detection():
+    global detection_running
+
+    detection_running = True
+
+    return jsonify({
+        "message": "Detection resumed"
+    })
 
 
 
@@ -558,6 +600,7 @@ def user_sessions(user_id):
     FROM study_sessions
     WHERE user_id=?
     ORDER BY id DESC
+    LIMIT 10;
     """, (user_id,))
 
     rows = cursor.fetchall()

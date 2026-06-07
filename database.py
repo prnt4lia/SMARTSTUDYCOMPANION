@@ -44,7 +44,7 @@ def init_db():
         session_id INTEGER,
         fatigue TEXT,
         severity TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        timestamp DATETIME 
     )
     """)
 

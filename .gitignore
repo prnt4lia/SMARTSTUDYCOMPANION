@@ -1,25 +1,18 @@
-# Virtual environment
+# Python
 .venv/
-
-# VS Code / Visual Studio
-.vs/
-.vscode/
-
-# Python cache files
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# Environment variables
-.env
+# Database backups
+*.db-journal
+
+# Next.js
+smart-ui/node_modules/
+smart-ui/.next/
+
+# VS Code
+.vscode/
 
 # OS files
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-
-# Database (optional)
-*.db

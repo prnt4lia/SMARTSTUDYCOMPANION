@@ -12,6 +12,7 @@ import {
   RefreshCw,
   User,
 } from "lucide-react";
+
 import FatigueTrend from "../../components/FatigueTrend";
 import Sidebar from "../../components/Sidebar";
 import FatigueTimeChart from "../../components/FatigueTimeChart";
@@ -71,7 +72,36 @@ export default function AnalyticsPage() {
     setTimeData(timeJson);
   };
 
-   return (
+  function formatDuration(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+
+  return `${remainingSeconds}s`;
+}
+
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleString("en-MY", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+const highest = [...timeData].sort(
+                  (a, b) => b.count - a.count
+                )[0];
+
+  return (
         <div style={{ display: "flex" }}>
            <Sidebar />
           <main
@@ -108,22 +138,14 @@ export default function AnalyticsPage() {
           <h2>Fatigue by Time of Day</h2>
 
           <FatigueTimeChart data={timeData} />
-        </div>
-
-          {timeData.length > 0 && (
-            <div style={styles.insightCard}>
-            💡 Your highest fatigue period is{" "}
-            <b>
-      {
-        [...timeData].sort(
-          (a, b) => b.count - a.count
-        )[0].time
-      }
-    </b>
-    . Consider taking a short break before this time.
-  </div>
-)}
-
+           </div>
+                {highest?.count > 0 && (
+                  <div style={styles.insightCard}>
+                    💡 Your highest fatigue period is at <b>{highest.time}</b><b>00</b> hours.
+                    Consider taking a short break before this time.
+                  </div>
+                )}
+                
         {/* CALIBRATION */}
                <div style={styles.card}>
                  <h2 style={styles.sectionTitle}>
@@ -183,9 +205,9 @@ export default function AnalyticsPage() {
                          {sessions.map((session) => (
                            <tr key={session.id}>
                              <td>{session.id}</td>
-                             <td>{session.start_time}</td>
-                             <td>{session.end_time || "Active"}</td>
-                             <td>{session.duration || 0}s</td>
+                             <td>{formatDate(session.start_time)}</td>
+                             <td>{formatDate(session.end_time) || "Active"}</td>
+                             <td>{formatDuration(session.duration || 0)}</td>
                            </tr>
                          ))}
                        </tbody>
@@ -429,11 +451,21 @@ statValue: {
     overflowX: "auto",
   },
 
-  table: {
+ table: {
     width: "100%",
-    borderCollapse: "separate",
-    borderSpacing: "0 12px",
+    borderCollapse: "collapse",
+    textAlign: "center"
   },
+
+  th: {
+    padding: "12px",
+    fontWeight: "bold"
+  },
+
+  td: {
+    padding: "12px"
+  },
+
 
 Chartcard: {
   background: "white",

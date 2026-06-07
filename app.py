@@ -66,6 +66,8 @@ def save_fatigue_event(session_id, user_id, fatigue, severity):
 
     cursor.execute(
         """
+       
+
         INSERT INTO fatigue_events (
             session_id,
             user_id,
@@ -84,9 +86,6 @@ def save_fatigue_event(session_id, user_id, fatigue, severity):
 
     conn.commit()
     conn.close()
-
-
-#current_session_id = start_session()
 
 # Initialize detector
 detector = None
@@ -268,12 +267,14 @@ def start_session(user_id):
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
 
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     cursor.execute("""
         UPDATE study_sessions
-        SET end_time=datetime('now')
+        SET end_time=?
         WHERE user_id=?
         AND end_time IS NULL
-        """, (user_id,))
+        """, (current_time, user_id))
 
     start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -709,36 +710,12 @@ def fatigue_time_distribution(user_id):
 
     conn.close()
 
-    buckets = {
-        "8-10am": 0,
-        "10-12pm": 0,
-        "12-2pm": 0,
-        "2-4pm": 0,
-        "4-6pm": 0,
-        "6-8pm": 0
-    }
+    buckets = {f"{i:02d}": 0 for i in range(24)}
 
     for row in rows:
 
         hour = int(row[0][11:13])
-
-        if 8 <= hour < 10:
-            buckets["8-10am"] += 1
-
-        elif 10 <= hour < 12:
-            buckets["10-12pm"] += 1
-
-        elif 12 <= hour < 14:
-            buckets["12-2pm"] += 1
-
-        elif 14 <= hour < 16:
-            buckets["2-4pm"] += 1
-
-        elif 16 <= hour < 18:
-            buckets["4-6pm"] += 1
-
-        elif 18 <= hour < 20:
-            buckets["6-8pm"] += 1
+        buckets[f"{hour:02d}"] += 1
 
     return jsonify([
         {"time": k, "count": v}

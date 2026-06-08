@@ -63,7 +63,7 @@ A real-time fatigue detection and break recommendation system that monitors stud
 ### 1. Clone the Repository
 
 git clone <repository-url>
-cd SMART-STUDY-COMPANION
+cd SMART STUDY COMPANION
 
 ### 2. Create Python Virtual Environment
 
@@ -134,14 +134,16 @@ http://localhost:3000
 
 ## Usage
 
-1. Register a new account.
+1. Register a new account or login using demo account.
+    Username:userpriya
+    Password: Natalia!123
 2. Login to the system.
 3. Perform calibration to generate personalized EAR and MAR thresholds.
 4. Start a study session.
 5. Allow webcam access.
 6. Monitor fatigue in real time.
 7. Receive alerts and break recommendations when fatigue is detected.
-8. View session statistics and fatigue history in the dashboard.
+8. View session statistics and fatigue history in the analytics dashboard.
 
 ---
 
